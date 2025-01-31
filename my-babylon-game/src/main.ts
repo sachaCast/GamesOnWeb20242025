@@ -45,7 +45,7 @@ SceneLoader.ImportMesh("", "/donut.glb", "", scene, (meshes) => {
   });
 
   console.log("Donut chargé !");
-}, null, (scene, message) => {
+}, null, (message) => {
   console.error("Erreur de chargement :", message);
 });
 

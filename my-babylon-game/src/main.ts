@@ -60,9 +60,14 @@ camera.rotationOffset = 0;
 camera.inputs.clear();
 
 // Movement logic
-const speed = 0.08;
+let speed = 0.1;
 const keys: Record<string, boolean> = {}; // Store pressed keys
 const boundary = groundSize / 2 - 1; // Character movement boundaries
+// Gravity and jumping
+let velocityY = 0;
+const gravity = -0.005;
+let jumpStrength = 0.15;
+let isJumping = false;
 
 const keyMappings: Record<string, string> = {
     "KeyW": "forward",
@@ -72,26 +77,38 @@ const keyMappings: Record<string, string> = {
     "ArrowUp": "forward",
     "ArrowDown": "backward",
     "ArrowLeft": "right",
-    "ArrowRight": "left"
+    "ArrowRight": "left",
+    "ShiftLeft": "crawl"
 };
 
 // Handle key press events
 window.addEventListener("keydown", (event) => {
     const action = keyMappings[event.code];
     if (action) keys[action] = true;
+
+    // Crawl mechanic
+    if (event.code === "ShiftLeft") {
+        character.scaling.y = 0.5; // Flatten the sphere
+        character.position.y = 0.3; // Adjust position to stay grounded
+        speed = 0.025;
+        jumpStrength = 0.05;
+    }
 });
 
 // Handle key release events
 window.addEventListener("keyup", (event) => {
     const action = keyMappings[event.code];
     if (action) keys[action] = false;
+
+    // Restore normal size when shift is released
+    if (event.code === "ShiftLeft") {
+        character.scaling.y = 1; // Restore original shape
+        character.position.y = 0.6; // Restore original position
+        speed = 0.1;
+        jumpStrength = 0.15;
+    }
 });
 
-// Gravity and jumping
-let velocityY = 0;
-const gravity = -0.005;
-const jumpStrength = 0.15;
-let isJumping = false;
 
 window.addEventListener("keydown", (event) => {
     if (event.code === "Space" && !isJumping) {

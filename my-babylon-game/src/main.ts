@@ -1,4 +1,4 @@
-import { Engine, Scene, SceneLoader, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, FollowCamera } from "@babylonjs/core";
+import { Engine, Scene, SceneLoader, PhysicsImpostor, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, FollowCamera } from "@babylonjs/core";
 import "@babylonjs/loaders";
 
 // Get the canvas and create the engine
@@ -7,6 +7,7 @@ const engine = new Engine(canvas, true);
 
 // Create the scene
 const scene = new Scene(engine);
+scene.enablePhysics();
 
 // Lighting
 const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
@@ -22,10 +23,19 @@ ground.material = groundMaterial;
 // Create character
 const character = MeshBuilder.CreateSphere("character", { diameter: 1.2 }, scene);
 character.position = new Vector3(0, 0.6, 0);
+character.checkCollisions = true;
 
 const characterMaterial = new StandardMaterial("characterMat", scene);
 characterMaterial.diffuseColor = Color3.Red();
 character.material = characterMaterial;
+
+// Create pushable cube
+const cube = MeshBuilder.CreateBox("pushableCube", { size: 1 }, scene);
+cube.position = new Vector3(3, 0.5, 3);
+const cubeMaterial = new StandardMaterial("cubeMat", scene);
+cubeMaterial.diffuseColor = Color3.Blue();
+cube.material = cubeMaterial;
+cube.checkCollisions = true;
 
 let donuts: any[] = []; // Array to hold the donut meshes
 let donut: any; let donut2 :any; let donut3 : any;
@@ -63,11 +73,14 @@ camera.inputs.clear();
 let speed = 0.1;
 const keys: Record<string, boolean> = {}; // Store pressed keys
 const boundary = groundSize / 2 - 1; // Character movement boundaries
+
 // Gravity and jumping
 let velocityY = 0;
 const gravity = -0.005;
 let jumpStrength = 0.15;
 let isJumping = false;
+
+let isGrabbing = false;
 
 const keyMappings: Record<string, string> = {
     "KeyW": "forward",
@@ -78,7 +91,8 @@ const keyMappings: Record<string, string> = {
     "ArrowDown": "backward",
     "ArrowLeft": "right",
     "ArrowRight": "left",
-    "ShiftLeft": "crawl"
+    "ShiftLeft": "crawl",
+    "KeyC": "grab"
 };
 
 // Handle key press events
@@ -93,6 +107,17 @@ window.addEventListener("keydown", (event) => {
         speed = 0.025;
         jumpStrength = 0.05;
     }
+
+    if (event.code === "KeyC") {
+        isGrabbing = true;
+    }
+
+    window.addEventListener("keydown", (event) => {
+        if (event.code === "Space" && !isJumping) {
+            velocityY = jumpStrength;
+            isJumping = true;
+        }
+    });
 });
 
 // Handle key release events
@@ -107,17 +132,15 @@ window.addEventListener("keyup", (event) => {
         speed = 0.1;
         jumpStrength = 0.15;
     }
-});
 
-
-window.addEventListener("keydown", (event) => {
-    if (event.code === "Space" && !isJumping) {
-        velocityY = jumpStrength;
-        isJumping = true;
+    if (event.code === "KeyC") {
+        isGrabbing = false;
     }
 });
 
 const bounceForce = 0.5;
+const moveForce = 0.05;
+
 // Game loop
 engine.runRenderLoop(() => {
     let moveDirection = new Vector3(0, 0, 0);
@@ -130,20 +153,16 @@ engine.runRenderLoop(() => {
 
     moveDirection.normalize();
 
-    // Calculate new position
-    const newPosition = character.position.add(moveDirection.scale(speed));
+    const movement = moveDirection.scale(speed);
+    character.moveWithCollisions(movement);
 
-    // Restrict movement within field boundaries
-    if (newPosition.x > -boundary && newPosition.x < boundary && newPosition.z > -boundary && newPosition.z < boundary) {
-        character.position = newPosition;
-    }
 
     // Gravity and jumping
     if (isJumping) {
-        character.position.y += velocityY;
+        character.moveWithCollisions(new Vector3(0, velocityY, 0));
         velocityY += gravity;
         if (character.position.y <= 0.6) {
-            character.position.y = 0.6;
+            //character.position.y = 0.6;
             isJumping = false;
             velocityY = 0;
         }
@@ -158,6 +177,17 @@ engine.runRenderLoop(() => {
           character.position.z += direction.z * bounceForce;
       }
     });
+
+    const cubeDistance = Vector3.Distance(character.position, cube.position);
+    if (cubeDistance < 1.5 && isGrabbing) {
+      const grabDirection = character.position.subtract(cube.position).normalize();
+      if (keys["forward"]) {
+        cube.position.subtractInPlace(grabDirection.scale(moveForce)); // Push
+      }
+      if (keys["backward"]) {
+        cube.position.addInPlace(grabDirection.scale(moveForce)); // Pull
+      }
+    }
 
     scene.render();
 });

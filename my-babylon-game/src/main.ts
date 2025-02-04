@@ -1,5 +1,6 @@
 import { Engine, Scene, SceneLoader, PhysicsImpostor, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, FollowCamera } from "@babylonjs/core";
 import "@babylonjs/loaders";
+import { Ray } from "@babylonjs/core";
 
 // Get the canvas and create the engine
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
@@ -41,13 +42,13 @@ let donuts: any[] = []; // Array to hold the donut meshes
 let donut: any; let donut2 :any; let donut3 : any;
 SceneLoader.ImportMesh("", "/donut.glb", "", scene, (meshes) => {
   donut = meshes[0]; // Assigner le premier mesh du modèle
-  donut.position = new Vector3(5, 1, 0); // Position initiale
+  donut.position = new Vector3(5, 1.3, 0); // Position initiale
   donuts.push(donut);
   donut2 = meshes[0].clone("donut2", null); // Assigner le premier mesh du modèle
-  donut2.position = new Vector3(-5, 1, 0); // Position initiale
+  donut2.position = new Vector3(-5, 1.3, 0); // Position initiale
   donuts.push(donut2);
   donut3 = meshes[0].clone("donut3", null); // Assigner le premier mesh du modèle
-  donut3.position = new Vector3(0, 1, 5); // Position initiale
+  donut3.position = new Vector3(0, 1.3, 5); // Position initiale
   donuts.push(donut3);
 
   donuts.forEach(donut => {
@@ -72,14 +73,14 @@ camera.inputs.clear();
 // Movement logic
 let speed = 0.1;
 const keys: Record<string, boolean> = {}; // Store pressed keys
-const boundary = groundSize / 2 - 1; // Character movement boundaries
+const boundary = groundSize / 2 - 0.5; // Character movement boundaries
 
 // Gravity and jumping
 let velocityY = 0;
 const gravity = -0.005;
 let jumpStrength = 0.15;
 let isJumping = false;
-
+let canJump = true; // Флаг для контроля прыжка
 let isGrabbing = false;
 
 const keyMappings: Record<string, string> = {
@@ -112,12 +113,21 @@ window.addEventListener("keydown", (event) => {
         isGrabbing = true;
     }
 
-    window.addEventListener("keydown", (event) => {
-        if (event.code === "Space" && !isJumping) {
-            velocityY = jumpStrength;
-            isJumping = true;
-        }
-    });
+    if (event.code === "Space" && !isJumping) {
+        velocityY = jumpStrength;
+        isJumping = true;
+    }
+
+    if (event.code === "Space" && isGrounded() && canJump) {
+        velocityY = jumpStrength;
+        isJumping = true;
+        canJump = false; // Отключаем возможность повторного прыжка
+
+        // Устанавливаем задержку перед следующим прыжком
+        setTimeout(() => {
+            canJump = true;
+        }, 1500); // 1.5 секунды
+    }
 });
 
 // Handle key release events
@@ -138,6 +148,16 @@ window.addEventListener("keyup", (event) => {
     }
 });
 
+// В игровом цикле:
+if (isJumping) {
+    character.moveWithCollisions(new Vector3(0, velocityY, 0));
+    velocityY += gravity;
+    if (isGrounded()) { // Теперь проверяем не просто высоту, а наличие поверхности
+        isJumping = false;
+        velocityY = 0;
+    }
+}
+
 const bounceForce = 0.5;
 const moveForce = 0.05;
 
@@ -155,7 +175,11 @@ engine.runRenderLoop(() => {
 
     const movement = moveDirection.scale(speed);
     character.moveWithCollisions(movement);
-
+    //create boundary for ground
+    if (character.position.x > boundary) character.position.x = boundary;
+    if (character.position.x < -boundary) character.position.x = -boundary;
+    if (character.position.z > boundary) character.position.z = boundary;
+    if (character.position.z < -boundary) character.position.z = -boundary;
 
     // Gravity and jumping
     if (isJumping) {
@@ -191,6 +215,14 @@ engine.runRenderLoop(() => {
 
     scene.render();
 });
+
+// Функция проверки, стоит ли персонаж на поверхности
+function isGrounded() {
+    const ray = new Ray(character.position, new Vector3(0, -1, 0), 1.2); // Луч вниз
+    const hit = scene.pickWithRay(ray);
+    return hit && hit.pickedMesh; // Если что-то под персонажем, значит он стоит на поверхности
+}
+
 
 // Window resize event listener
 window.addEventListener("resize", () => {

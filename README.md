@@ -20,13 +20,15 @@ To run this project locally, follow these steps:
 
 1. Clone the repository
    
-git clone <repo-link>
-cd <project-folder>
+git clone repo-link
+
+cd project-folder
 
 
 3. Install dependencies
 
 npm install
+
 npm install @babylonjs/core @babylonjs/loaders
 
 4. Start the development server

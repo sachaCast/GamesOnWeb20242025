@@ -1,13 +1,14 @@
 import { Scene, Engine, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, SceneLoader, Mesh, Camera, FollowCamera } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import Character from "./character";
+import { GameObject } from "./GameObject";
 
 export default class TestLevel {
     public scene: Scene;
     private groundSize: number = 20;
     public ground: any;
     public cube: any;
-    public donuts: Mesh[] = [];
+    public donuts: GameObject[] = []; // Используем GameObject вместо Mesh[]
     public canvas: HTMLCanvasElement;
     public engine: Engine;
     public boundary = this.groundSize / 2 - 0.5; // Character movement boundaries
@@ -49,26 +50,18 @@ export default class TestLevel {
     }
 
     private loadDonuts() {
-        let donut: any; let donut2 :any; let donut3 : any;
-        SceneLoader.ImportMesh("", "/donut.glb", "", this.scene, (meshes) => {
-            donut = meshes[0]; // Assigner le premier mesh du modèle
-            donut.position = new Vector3(5, 1.3, 0); // Position initiale
+        const donutPositions = [
+            new Vector3(5, 1.3, 0),
+            new Vector3(-5, 1.3, 0),
+            new Vector3(0, 1.3, 5),
+        ];
+
+        donutPositions.forEach((pos, index) => {
+            const donut = new GameObject(this.scene, "public/", "donut.glb", pos, new Vector3(5, 5, 5));
             this.donuts.push(donut);
-            donut2 = meshes[0].clone("donut2", null); // Assigner le premier mesh du modèle
-            donut2.position = new Vector3(-5, 1.3, 0); // Position initiale
-            this.donuts.push(donut2);
-            donut3 = meshes[0].clone("donut3", null); // Assigner le premier mesh du modèle
-            donut3.position = new Vector3(0, 1.3, 5); // Position initiale
-            this.donuts.push(donut3);
-
-            this.donuts.forEach(donut => {
-              donut.scaling = new Vector3(5, 5, 5); // Scale each donut
-            });
-
-            console.log("Donuts loaded successfully!");
-        }, null, (message) => {
-            console.error("Error loading donuts:", message);
         });
+
+        console.log("Donuts are being loaded...");
     }
 
     checkBoundaries(object: any){
@@ -158,14 +151,17 @@ export default class TestLevel {
 
             // Check for collisions with any of the donuts
             this.donuts.forEach(donut => {
-                const distance = Vector3.Distance(mainCharacter.mesh.position, donut.position);
-                const distanceCube = Vector3.Distance(this.cube.position, donut.position);
-                if (distance < 1 || distanceCube < 1) { // Collision threshold
-                    const direction = mainCharacter.mesh.position.subtract(donut.position).normalize();
-                    mainCharacter.mesh.position.x += direction.x * bounceForce;
-                    mainCharacter.mesh.position.z += direction.z * bounceForce;
-                    this.cube.position.x += direction.x * bounceForce;
-                    this.cube.position.z += direction.z * bounceForce;
+                if (donut.mesh) { // Проверяем, загружен ли пончик
+                    const distance = Vector3.Distance(mainCharacter.mesh.position, donut.mesh.position);
+                    const distanceCube = Vector3.Distance(this.cube.position, donut.mesh.position);
+
+                    if (distance < 1 || distanceCube < 1) { // Collision threshold
+                        const direction = mainCharacter.mesh.position.subtract(donut.mesh.position).normalize();
+                        mainCharacter.mesh.position.x += direction.x * bounceForce;
+                        mainCharacter.mesh.position.z += direction.z * bounceForce;
+                        this.cube.position.x += direction.x * bounceForce;
+                        this.cube.position.z += direction.z * bounceForce;
+                    }
                 }
             });
 

@@ -113,7 +113,7 @@ window.addEventListener("keydown", (event) => {
         isGrabbing = true;
     }
 
-    if (event.code === "Space" && !isJumping) {
+    if (event.code === "Space" && !isJumping && character.scaling.y === 1) {
         velocityY = jumpStrength;
         isJumping = true;
     }
@@ -201,17 +201,25 @@ engine.runRenderLoop(() => {
           character.position.z += direction.z * bounceForce;
       }
     });
-
     const cubeDistance = Vector3.Distance(character.position, cube.position);
     if (cubeDistance < 1.5 && isGrabbing) {
-      const grabDirection = character.position.subtract(cube.position).normalize();
-      if (keys["forward"]) {
-        cube.position.subtractInPlace(grabDirection.scale(moveForce)); // Push
-      }
-      if (keys["backward"]) {
-        cube.position.addInPlace(grabDirection.scale(moveForce)); // Pull
-      }
+        speed = 0.025;
+        let cubeMoveDirection = new Vector3(0, 0, 0);
+
+        // Recalculer la direction uniquement pour le cube
+        if (keys["forward"]) cubeMoveDirection.z -= 1;
+        if (keys["backward"]) cubeMoveDirection.z += 1;
+        if (keys["left"]) cubeMoveDirection.x -= 1;
+        if (keys["right"]) cubeMoveDirection.x += 1;
+
+        cubeMoveDirection.normalize();
+        const cubeMovement = cubeMoveDirection.scale(speed);
+
+        cube.moveWithCollisions(cubeMovement);
+    } else {
+        speed = 0.1;
     }
+
 
     scene.render();
 });

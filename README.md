@@ -15,17 +15,28 @@ Character movement: The protagonist can walk, jump, crawl.
 Hotkeys:
 
 🎮 Movement Controls:
+
 Key	Action
+
 W / Arrow Up	Move Forward
+
 S / Arrow Down	Move Backward
+
 A / Arrow Left	Move Left
+
 D / Arrow Right	Move Right
 
+
 🏃‍♂️ Character Actions:
+
 Key	Action
+
 Spacebar	Jump (Only if the character is not crawling)
+
 Shift Left	Crawl (Reduces height and movement speed)
+
 C	Grab (Allows grabbing objects like the cube)
+
 
 Whan character or cube catch the donuts it bounds.
 

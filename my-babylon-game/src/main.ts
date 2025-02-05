@@ -201,25 +201,20 @@ engine.runRenderLoop(() => {
           character.position.z += direction.z * bounceForce;
       }
     });
+
     const cubeDistance = Vector3.Distance(character.position, cube.position);
     if (cubeDistance < 1.5 && isGrabbing) {
         speed = 0.025;
-        let cubeMoveDirection = new Vector3(0, 0, 0);
-
-        // Recalculer la direction uniquement pour le cube
-        if (keys["forward"]) cubeMoveDirection.z -= 1;
-        if (keys["backward"]) cubeMoveDirection.z += 1;
-        if (keys["left"]) cubeMoveDirection.x -= 1;
-        if (keys["right"]) cubeMoveDirection.x += 1;
-
-        cubeMoveDirection.normalize();
-        const cubeMovement = cubeMoveDirection.scale(speed);
-
-        cube.moveWithCollisions(cubeMovement);
-    } else {
+        cube.moveWithCollisions(movement);
+        cube.position.y = cube.scaling.y * 0.5;
+        if (cube.position.x > boundary) cube.position.x = boundary;
+        if (cube.position.x < -boundary) cube.position.x = -boundary;
+        if (cube.position.z > boundary) cube.position.z = boundary;
+        if (cube.position.z < -boundary) cube.position.z = -boundary;
+    }
+    else if (cubeDistance < 1.5){
         speed = 0.1;
     }
-
 
     scene.render();
 });

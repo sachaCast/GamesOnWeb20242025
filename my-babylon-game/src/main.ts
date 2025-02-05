@@ -1,6 +1,7 @@
 import { Engine, Scene, SceneLoader, PhysicsImpostor, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, FollowCamera } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import { Ray } from "@babylonjs/core";
+import { Character } from "./character";
 
 // Get the canvas and create the engine
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
@@ -22,13 +23,8 @@ groundMaterial.diffuseColor = new Color3(0.5, 0.5, 0.5);
 ground.material = groundMaterial;
 
 // Create character
-const character = MeshBuilder.CreateSphere("character", { diameter: 1.2 }, scene);
-character.position = new Vector3(0, 0.6, 0);
-character.checkCollisions = true;
+const character = new Character(scene, new Vector3(0, 0.6, 0), Color3.Red());
 
-const characterMaterial = new StandardMaterial("characterMat", scene);
-characterMaterial.diffuseColor = Color3.Red();
-character.material = characterMaterial;
 
 // Create pushable cube
 const cube = MeshBuilder.CreateBox("pushableCube", { size: 1 }, scene);
@@ -62,7 +58,7 @@ SceneLoader.ImportMesh("", "/donut.glb", "", scene, (meshes) => {
 
 // Create follow camera
 const camera = new FollowCamera("FollowCam", new Vector3(0, 5, -10), scene);
-camera.lockedTarget = character; // The camera follows the character
+camera.lockedTarget = character.mesh; // The camera follows the character
 camera.radius = 10;
 camera.heightOffset = 5;
 camera.rotationOffset = 0;
@@ -103,8 +99,8 @@ window.addEventListener("keydown", (event) => {
 
     // Crawl mechanic
     if (event.code === "ShiftLeft") {
-        character.scaling.y = 0.5; // Flatten the sphere
-        character.position.y = 0.3; // Adjust position to stay grounded
+        character.mesh.scaling.y = 0.5; // Flatten the sphere
+        character.mesh.position.y = 0.3; // Adjust position to stay grounded
         speed = 0.025;
         jumpStrength = 0.05;
     }
@@ -113,7 +109,7 @@ window.addEventListener("keydown", (event) => {
         isGrabbing = true;
     }
 
-    if (event.code === "Space" && !isJumping && character.scaling.y === 1) {
+    if (event.code === "Space" && !isJumping && character.mesh.scaling.y === 1) {
         velocityY = jumpStrength;
         isJumping = true;
     }
@@ -137,8 +133,8 @@ window.addEventListener("keyup", (event) => {
 
     // Restore normal size when shift is released
     if (event.code === "ShiftLeft") {
-        character.scaling.y = 1; // Restore original shape
-        character.position.y = 0.6; // Restore original position
+        character.mesh.scaling.y = 1; // Restore original shape
+        character.mesh.position.y = 0.6; // Restore original position
         speed = 0.1;
         jumpStrength = 0.15;
     }
@@ -150,7 +146,7 @@ window.addEventListener("keyup", (event) => {
 
 // В игровом цикле:
 if (isJumping) {
-    character.moveWithCollisions(new Vector3(0, velocityY, 0));
+    character.mesh.moveWithCollisions(new Vector3(0, velocityY, 0));
     velocityY += gravity;
     if (isGrounded()) { // Теперь проверяем не просто высоту, а наличие поверхности
         isJumping = false;
@@ -174,18 +170,18 @@ engine.runRenderLoop(() => {
     moveDirection.normalize();
 
     const movement = moveDirection.scale(speed);
-    character.moveWithCollisions(movement);
+    character.mesh.moveWithCollisions(movement);
     //create boundary for ground
-    if (character.position.x > boundary) character.position.x = boundary;
-    if (character.position.x < -boundary) character.position.x = -boundary;
-    if (character.position.z > boundary) character.position.z = boundary;
-    if (character.position.z < -boundary) character.position.z = -boundary;
+    if (character.mesh.position.x > boundary) character.mesh.position.x = boundary;
+    if (character.mesh.position.x < -boundary) character.mesh.position.x = -boundary;
+    if (character.mesh.position.z > boundary) character.mesh.position.z = boundary;
+    if (character.mesh.position.z < -boundary) character.mesh.position.z = -boundary;
 
     // Gravity and jumping
     if (isJumping) {
-        character.moveWithCollisions(new Vector3(0, velocityY, 0));
+        character.mesh.moveWithCollisions(new Vector3(0, velocityY, 0));
         velocityY += gravity;
-        if (character.position.y <= 0.6) {
+        if (character.mesh.position.y <= 0.6) {
             //character.position.y = 0.6;
             isJumping = false;
             velocityY = 0;
@@ -194,15 +190,15 @@ engine.runRenderLoop(() => {
 
     // Check for collisions with any of the donuts
     donuts.forEach(donut => {
-      const distance = Vector3.Distance(character.position, donut.position);
+      const distance = Vector3.Distance(character.mesh.position, donut.position);
       if (distance < 1) { // Collision threshold
-          const direction = character.position.subtract(donut.position).normalize();
-          character.position.x += direction.x * bounceForce;
-          character.position.z += direction.z * bounceForce;
+          const direction = character.mesh.position.subtract(donut.position).normalize();
+          character.mesh.position.x += direction.x * bounceForce;
+          character.mesh.position.z += direction.z * bounceForce;
       }
     });
 
-    const cubeDistance = Vector3.Distance(character.position, cube.position);
+    const cubeDistance = Vector3.Distance(character.mesh.position, cube.position);
     if (cubeDistance < 1.5 && isGrabbing) {
         speed = 0.025;
         cube.moveWithCollisions(movement);
@@ -221,7 +217,7 @@ engine.runRenderLoop(() => {
 
 // Функция проверки, стоит ли персонаж на поверхности
 function isGrounded() {
-    const ray = new Ray(character.position, new Vector3(0, -1, 0), 1.2); // Луч вниз
+    const ray = new Ray(character.mesh.position, new Vector3(0, -1, 0), 1.2); // Луч вниз
     const hit = scene.pickWithRay(ray);
     return hit && hit.pickedMesh; // Если что-то под персонажем, значит он стоит на поверхности
 }
@@ -231,3 +227,4 @@ function isGrounded() {
 window.addEventListener("resize", () => {
     engine.resize();
 });
+

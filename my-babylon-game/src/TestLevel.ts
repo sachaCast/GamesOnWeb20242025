@@ -1,6 +1,6 @@
 import { Scene, Engine, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, SceneLoader, Mesh, Camera, FollowCamera } from "@babylonjs/core";
 import "@babylonjs/loaders";
-import Character from "./Character";
+import Character from "./character";
 
 export default class TestLevel {
     public scene: Scene;

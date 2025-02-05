@@ -1,6 +1,6 @@
 import { Color3, Scene, Vector3 } from "@babylonjs/core";
 import TestLevel from "./TestLevel";
-import Character from "./Character";
+import Character from "./character";
 
 let levelTest: TestLevel;
 

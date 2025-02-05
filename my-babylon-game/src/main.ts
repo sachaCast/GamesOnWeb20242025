@@ -1,7 +1,7 @@
-import { Engine, Scene, SceneLoader, PhysicsImpostor, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, FollowCamera } from "@babylonjs/core";
+/*import { Engine, Scene, SceneLoader, PhysicsImpostor, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, FollowCamera } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import { Ray } from "@babylonjs/core";
-import { Character } from "./character";
+import Character from "./Character";
 
 // Get the canvas and create the engine
 const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
@@ -228,3 +228,4 @@ window.addEventListener("resize", () => {
     engine.resize();
 });
 
+*/

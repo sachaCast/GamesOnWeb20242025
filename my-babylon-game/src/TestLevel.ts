@@ -155,7 +155,12 @@ export default class TestLevel {
                     const distance = Vector3.Distance(mainCharacter.mesh.position, donut.mesh.position);
                     const distanceCube = Vector3.Distance(this.cube.position, donut.mesh.position);
 
-                    if (distance < 1 || distanceCube < 1) { // Collision threshold
+                    if (distance < 1 ) { // Collision threshold
+                        const direction = mainCharacter.mesh.position.subtract(donut.mesh.position).normalize();
+                        mainCharacter.mesh.position.x += direction.x * bounceForce;
+                        mainCharacter.mesh.position.z += direction.z * bounceForce;
+                    }
+                    if ((distance < 1 && mainCharacter.isGrabbing) || distanceCube < 1) { // Collision threshold
                         const direction = mainCharacter.mesh.position.subtract(donut.mesh.position).normalize();
                         mainCharacter.mesh.position.x += direction.x * bounceForce;
                         mainCharacter.mesh.position.z += direction.z * bounceForce;
@@ -172,7 +177,7 @@ export default class TestLevel {
                 this.cube.position.y = this.cube.scaling.y * 0.5;
                 this.checkBoundaries(this.cube);
             }
-            else if (cubeDistance < 1.5){
+            else if (cubeDistance > 1.5){
                 mainCharacter.speed = 0.1;
             }
 

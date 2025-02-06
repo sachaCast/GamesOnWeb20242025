@@ -7,12 +7,40 @@ Development Approach
 
 A new Vite project was initialized to create the game.
 3D objects were pre-designed in Blender and then imported into the game using Babylon.js.
-We are going to implement a character class to dynamically generate multiple characters instead of manually creating each one.
+We implemented different classes for a characte, for the game objects and for the test level.
 
 Gameplay Features
 
-Character movement: The protagonist can walk, jump, crawl and climb on platforms.
-Various elevated platforms of different heights demonstrate where the character can jump.
+Character movement: The protagonist can walk, jump, crawl. 
+Hotkeys:
+
+🎮 Movement Controls:
+
+Key	Action
+
+W / Arrow Up	Move Forward
+
+S / Arrow Down	Move Backward
+
+A / Arrow Left	Move Left
+
+D / Arrow Right	Move Right
+
+
+🏃‍♂️ Character Actions:
+
+Key	Action
+
+Spacebar	Jump (Only if the character is not crawling)
+
+Shift Left	Crawl (Reduces height and movement speed)
+
+C	Grab (Allows grabbing objects like the cube)
+
+
+Whan character or cube catch the donuts it bounds.
+
+Cube was added to demonstrate where the character can jump.
 
 Installation & Setup
 

@@ -34,11 +34,6 @@ export default class Character {
         }
         this.mesh.moveWithCollisions(direction.scale(this.speed));
 
-        //create boundary for ground
-        if (this.mesh.position.x > boundary) this.mesh.position.x = boundary;
-        if (this.mesh.position.x < -boundary) this.mesh.position.x = -boundary;
-        if (this.mesh.position.z > boundary) this.mesh.position.z = boundary;
-        if (this.mesh.position.z < -boundary) this.mesh.position.z = -boundary;
 
     }
 

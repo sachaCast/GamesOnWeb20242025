@@ -1,4 +1,4 @@
-import { Scene, Engine, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, SceneLoader, Mesh, Camera, FollowCamera } from "@babylonjs/core";
+import { Scene, Texture, Engine, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, SceneLoader, Mesh, Camera, FollowCamera } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import Character from "./character";
 import { GameObject } from "./GameObject";
@@ -34,9 +34,11 @@ export default class TestLevel {
     }
 
     private createGround() {
-        this.ground = MeshBuilder.CreateGround("ground", { width: this.groundSize, height: this.groundSize }, this.scene);
+        this.ground = MeshBuilder.CreateGround("ground", { width: this.groundSize*2, height: this.groundSize }, this.scene);
+        this.ground.position.x = this.groundSize-30;
         const groundMaterial = new StandardMaterial("groundMat", this.scene);
-        groundMaterial.diffuseColor = new Color3(0.5, 0.5, 0.5);
+        const groundTexture = new Texture("./public/grass.jpg", this.scene);
+        groundMaterial.diffuseTexture = groundTexture;
         this.ground.material = groundMaterial;
     }
 
@@ -66,7 +68,7 @@ export default class TestLevel {
 
     checkBoundaries(object: any){
         if (object.position.x > this.boundary) object.position.x = this.boundary;
-        if (object.position.x < -this.boundary) object.position.x = -this.boundary;
+        //if (object.position.x < -this.boundary) object.position.x = -this.boundary;
         if (object.position.z > this.boundary) object.position.z = this.boundary;
         if (object.position.z < -this.boundary) object.position.z = -this.boundary;
     }
@@ -137,6 +139,7 @@ export default class TestLevel {
         this.engine.runRenderLoop(() => {
 
             let moveDirection = new Vector3(0, 0, 0);
+            this.checkBoundaries(mainCharacter.mesh);
 
             // Determine movement direction
             if (keys["forward"]) moveDirection.z -= 1;

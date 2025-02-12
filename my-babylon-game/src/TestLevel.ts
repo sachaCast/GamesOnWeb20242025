@@ -2,6 +2,8 @@ import { Scene, Texture, Engine, HemisphericLight, Vector3, MeshBuilder, Standar
 import "@babylonjs/loaders";
 import Character from "./character";
 import { GameObject } from "./GameObject";
+import { CSG } from "@babylonjs/core/Meshes/csg";
+
 
 export default class TestLevel {
     public scene: Scene;
@@ -11,7 +13,7 @@ export default class TestLevel {
     public donuts: GameObject[] = []; // Используем GameObject вместо Mesh[]
     public canvas: HTMLCanvasElement;
     public engine: Engine;
-    public boundary = this.groundSize / 2 - 0.5; // Character movement boundaries
+    public boundary = this.groundSize / 2 - 1; // Character movement boundaries
 
     //public keys;
     //public mainCharacter: MainCharacter;
@@ -26,6 +28,7 @@ export default class TestLevel {
         this.createGround();
         this.createCube();
         this.loadDonuts();
+        this.createBorders(); 
     }
 
     private createLighting() {
@@ -37,7 +40,7 @@ export default class TestLevel {
         this.ground = MeshBuilder.CreateGround("ground", { width: this.groundSize*2, height: this.groundSize }, this.scene);
         this.ground.position.x = this.groundSize-30;
         const groundMaterial = new StandardMaterial("groundMat", this.scene);
-        const groundTexture = new Texture("./public/grass.jpg", this.scene);
+        const groundTexture = new Texture("/grass.jpg", this.scene);
         groundMaterial.diffuseTexture = groundTexture;
         this.ground.material = groundMaterial;
     }
@@ -59,7 +62,7 @@ export default class TestLevel {
         ];
 
         donutPositions.forEach((pos, index) => {
-            const donut = new GameObject(this.scene, "public/", "donut.glb", pos, new Vector3(5, 5, 5));
+            const donut = new GameObject(this.scene, "/", "donut.glb", pos, new Vector3(5, 5, 5));
             this.donuts.push(donut);
         });
 
@@ -188,4 +191,84 @@ export default class TestLevel {
         });
 
     }
+
+
+    private createBorders() {
+        const wallMaterial = new StandardMaterial("wallMat", this.scene);
+        wallMaterial.diffuseColor = new Color3(0.6, 0.6, 0.6); // Gray walls
+    
+        const wallHeight = 10;
+        const wallThickness = 0.2;
+        const doorWidth = 4; // 1.5x wider door
+        const doorHeight = 4; // Half the height
+        
+        // Keep the existing left & right walls
+        const leftWall = MeshBuilder.CreateBox("leftWall", { width: wallThickness, height: wallHeight, depth: this.groundSize }, this.scene);
+        leftWall.position.x = -this.groundSize * 1.5;
+        leftWall.position.y = wallHeight / 2;
+        leftWall.material = wallMaterial;
+        leftWall.checkCollisions = true;
+
+        // **Create Doorway (A Box that Cuts Through the Wall)**
+        const doorMesh = MeshBuilder.CreateBox("door", { width: wallThickness + 0.1, height: doorHeight, depth: doorWidth }, this.scene);
+        doorMesh.position.x = leftWall.position.x; // Align with left wall
+        doorMesh.position.y = doorHeight / 2; // Center door height-wise
+        doorMesh.position.z = 0; // Place in the middle of the wall
+        doorMesh.isVisible = false; // Hide the cutter box
+
+        // **Perform Boolean Subtraction to Create the Doorway**
+        const leftWallCSG = CSG.FromMesh(leftWall);
+        const doorCSG = CSG.FromMesh(doorMesh);
+        const finalWallCSG = leftWallCSG.subtract(doorCSG); // Subtract door from wall
+
+        // **Create the Final Left Wall with a Door Opening**
+        const leftWallWithDoor = finalWallCSG.toMesh("leftWallWithDoor", wallMaterial, this.scene);
+        leftWallWithDoor.checkCollisions = true;
+
+        // **Dispose of Temporary Meshes**
+        leftWall.dispose();
+        doorMesh.dispose();
+        
+        const rightWall = MeshBuilder.CreateBox("rightWall", { width: wallThickness, height: wallHeight, depth: this.groundSize }, this.scene);
+        rightWall.position.x = this.groundSize * 0.5;
+        rightWall.position.y = wallHeight / 2;
+        rightWall.material = wallMaterial;
+        rightWall.checkCollisions = true;
+    
+        // **Fix the back wall size & position**
+        const backWallWidth = rightWall.position.x - leftWall.position.x; // Match exact distance
+        const backWall = MeshBuilder.CreateBox("backWall", { width: backWallWidth, height: wallHeight, depth: wallThickness }, this.scene);
+        backWall.position.x = (rightWall.position.x + leftWall.position.x) / 2; // Center between walls
+        backWall.position.z = -this.groundSize / 2;
+        backWall.position.y = wallHeight / 2;
+        backWall.material = wallMaterial;
+        backWall.checkCollisions = true;
+
+        // **Create Stairs Descending from the Door**
+        this.createStairs(leftWallWithDoor.position.x - 0.5, doorWidth);
+    }
+    
+
+    private createStairs(xPos: number, width: number) {
+        const stairMaterial = new StandardMaterial("stairMat", this.scene);
+        stairMaterial.diffuseColor = new Color3(0.8, 0.8, 0.8); // Light gray
+    
+        const stairDepth = width;
+        const stairWidth = 1; // Thickness of each step
+        const stairHeight = 1;
+        const stairCount = 10; // Number of steps
+    
+        for (let i = 0; i < stairCount; i++) {
+            const step = MeshBuilder.CreateBox(`stair${i}`, { width: stairWidth, height: stairHeight, depth: stairDepth }, this.scene);
+            step.position.x = xPos - stairWidth * i; // Move steps further from the door
+            step.position.y = stairHeight * (stairCount - i - 10.5); // Lower each step
+            step.position.z = 0; // Center with door
+            step.material = stairMaterial;
+            step.checkCollisions = true;
+        }
+        
+    }
+    
+    
+    
 }

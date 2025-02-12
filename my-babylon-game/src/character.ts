@@ -20,6 +20,7 @@ export default class Character {
         this.mesh = MeshBuilder.CreateSphere("character", { diameter: 1.2 }, scene);
         this.mesh.position = position;
         this.mesh.checkCollisions = true;
+        this.mesh.showBoundingBox = true;
 
         // Материал персонажа
         const material = new StandardMaterial("characterMat", scene);

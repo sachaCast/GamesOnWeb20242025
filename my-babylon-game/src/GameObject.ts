@@ -23,7 +23,7 @@ export class GameObject {
     // Метод для перемещения объекта
     public move(direction: Vector3) {
         if (this.mesh) {
-            this.mesh.position.addInPlace(direction);
+            this.mesh.moveWithCollisions(direction);
         }
     }
 

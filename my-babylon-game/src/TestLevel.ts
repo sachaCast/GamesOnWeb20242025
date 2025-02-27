@@ -11,8 +11,8 @@ export default class TestLevel {
     private groundSize: number = 20;
     public ground: any;
     public cube: any;
-    public donuts: GameObject[] = []; // Используем GameObject вместо Mesh[]
-    public spiders: Spider[] = []; // Используем GameObject вместо Mesh[]
+    public donuts: GameObject[] = []; // USE GameObject INSTEAD OF Mesh[]
+    public spiders: Spider[] = []; // USE GameObject INSTEAD OF Mesh[]
     public canvas: HTMLCanvasElement;
     public engine: Engine;
     public boundary = this.groundSize / 2 - 1; // Character movement boundaries
@@ -43,6 +43,7 @@ export default class TestLevel {
         const groundTexture = new Texture("/grass.jpg", this.scene);
         groundMaterial.diffuseTexture = groundTexture;
         this.ground.material = groundMaterial;
+        this.ground.checkCollisions = true;
     }
 
     private createCube() {
@@ -75,7 +76,7 @@ export default class TestLevel {
             new Vector3(-15, 0, 0),
         ];
         spidersPositions.forEach((pos, index) => {
-            let spider = new Spider(this.scene, "public/", "spider.glb", pos, new Vector3(5, 5, 5));
+            let spider = new Spider(this.scene, "/", "spider.glb", pos, new Vector3(5, 5, 5));
             this.spiders.push(spider);
         });
 
@@ -90,7 +91,7 @@ export default class TestLevel {
 
     private checkCollisionWithSpiders(mainCharacter: Character,bounceForce: number) {
         this.spiders.forEach(spider => {
-            if (spider.collisionCube) { // Проверяем, загружен ли пончик
+            if (spider.collisionCube) { 
                 const distance = Vector3.Distance(mainCharacter.mesh.position, spider.collisionCube.position);
                 const distanceCube = Vector3.Distance(this.cube.position, spider.collisionCube.position);
 
@@ -117,7 +118,7 @@ export default class TestLevel {
 
     private checkCollisionWithDonuts(mainCharacter: Character,bounceForce: number) {
         this.donuts.forEach(donut => {
-            if (donut.mesh) { // Проверяем, загружен ли пончик
+            if (donut.mesh) { 
                 const distance = Vector3.Distance(mainCharacter.mesh.position, donut.mesh.position);
                 const distanceCube = Vector3.Distance(this.cube.position, donut.mesh.position);
 
@@ -146,6 +147,12 @@ export default class TestLevel {
         camera.rotationOffset = 0;
         // Disable user camera controls
         camera.inputs.clear();
+
+        this.engine.runRenderLoop(() => {
+            mainCharacter.applyGravity();
+            this.checkCollisionWithSpiders(mainCharacter, bounceForce);
+            this.scene.render();
+        });
 
         const keys: Record<string, boolean> = {}; // Store pressed keys
 

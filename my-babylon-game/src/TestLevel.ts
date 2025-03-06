@@ -16,6 +16,7 @@ export default class TestLevel {
     public canvas: HTMLCanvasElement;
     public engine: Engine;
     public boundary = this.groundSize / 2 - 1; // Character movement boundaries
+    public isAttacking = false;
 
     constructor() {
         //this.mainCharacter = mainCharacter;
@@ -91,7 +92,7 @@ export default class TestLevel {
 
     private checkCollisionWithSpiders(mainCharacter: Character,bounceForce: number) {
         this.spiders.forEach(spider => {
-            if (spider.collisionCube) { 
+            if (spider.collisionCube) {
                 const distance = Vector3.Distance(mainCharacter.mesh.position, spider.collisionCube.position);
                 const distanceCube = Vector3.Distance(this.cube.position, spider.collisionCube.position);
 
@@ -118,7 +119,7 @@ export default class TestLevel {
 
     private checkCollisionWithDonuts(mainCharacter: Character,bounceForce: number) {
         this.donuts.forEach(donut => {
-            if (donut.mesh) { 
+            if (donut.mesh) {
                 const distance = Vector3.Distance(mainCharacter.mesh.position, donut.mesh.position);
                 const distanceCube = Vector3.Distance(this.cube.position, donut.mesh.position);
 
@@ -148,12 +149,6 @@ export default class TestLevel {
         // Disable user camera controls
         camera.inputs.clear();
 
-        this.engine.runRenderLoop(() => {
-            mainCharacter.applyGravity();
-            this.checkCollisionWithSpiders(mainCharacter, bounceForce);
-            this.scene.render();
-        });
-
         const keys: Record<string, boolean> = {}; // Store pressed keys
 
         const keyMappings: Record<string, string> = {
@@ -166,7 +161,8 @@ export default class TestLevel {
             "ArrowLeft": "right",
             "ArrowRight": "left",
             "ShiftLeft": "crawl",
-            "KeyC": "grab"
+            "KeyC": "grab",
+            "KeyI": "attack",
         };
 
         window.addEventListener("keydown", (event) => {
@@ -190,6 +186,21 @@ export default class TestLevel {
             if (event.code === "Space" && mainCharacter.isGrounded() && mainCharacter.canJump) {
                 mainCharacter.jump();
             }
+            if (event.code === "KeyI") {
+                this.isAttacking = true;
+                console.log("attack");
+                this.spiders.forEach(spider => {
+                    spider.getHit();
+                    if(spider.hp<=0){
+                        spider.mesh?.dispose();
+                        spider.collisionCube?.dispose();
+                        const index = this.spiders.indexOf(spider);
+                        if (index !== -1) {
+                            this.spiders.splice(index, 1);
+                        }
+                    }
+                });
+            }
         });
 
         // Handle key release events
@@ -205,6 +216,9 @@ export default class TestLevel {
             if (event.code === "KeyC") {
                 mainCharacter.isGrabbing = false;
             }
+            if (event.code === "KeyI") {
+                this.isAttacking = false;
+            }
         });
 
         this.engine.runRenderLoop(() => {
@@ -215,15 +229,17 @@ export default class TestLevel {
             if (keys["backward"]) moveDirection.z += 1;
             if (keys["left"]) moveDirection.x -= 1;
             if (keys["right"]) moveDirection.x += 1;
+            mainCharacter.attack(this.isAttacking);
 
             moveDirection.normalize();
             mainCharacter.move(moveDirection, this.boundary);
             // Gravity
             mainCharacter.applyGravity();
+            mainCharacter.applyGravity();
 
             // Check for collisions with any of the donuts
             this.checkCollisionWithDonuts(mainCharacter,bounceForce);
-            this.spiders.forEach(spider => { spider.crawl(mainCharacter); });
+            //this.spiders.forEach(spider => { spider.crawl(mainCharacter); });
             this.checkBoundaries(mainCharacter.mesh);
             this.checkCollisionWithSpiders(mainCharacter,bounceForce);
 

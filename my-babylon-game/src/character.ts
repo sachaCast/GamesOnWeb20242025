@@ -1,4 +1,5 @@
 import { Scene, Vector3, MeshBuilder, StandardMaterial, Color3, Mesh, Ray } from "@babylonjs/core";
+import { GameObject } from "./GameObject";
 
 export default class Character {
     public mesh: Mesh;
@@ -11,6 +12,7 @@ export default class Character {
     public isCrawling: boolean = false;
     public canJump: boolean = true;
     public isGrabbing: boolean = false;
+    public attackCube: Mesh | null = null;
 
     constructor(scene: Scene, position: Vector3, color: Color3) {
         this.scene = scene;
@@ -25,6 +27,7 @@ export default class Character {
         const material = new StandardMaterial("characterMat", scene);
         material.diffuseColor = color;
         this.mesh.material = material;
+        this.createAattackCUbe();
     }
 
     // Movement method
@@ -33,7 +36,10 @@ export default class Character {
             direction.scaleInPlace(0.3); // Reduce speed while crawling
         }
         this.mesh.moveWithCollisions(direction.scale(this.speed));
-        
+        // Make the attackCube move with the character
+        if (this.attackCube) {
+            this.attackCube.position = this.mesh.position.clone(); // Sync position of the cube with the character
+        }
         // Check for step-down when moving
         this.checkForStepDown();
     }
@@ -101,5 +107,30 @@ export default class Character {
     // Interaction with objects (grabbing)
     public grabObject(start: boolean) {
         this.isGrabbing = start;
+    }
+
+    // Attack method: creates a red transparent cube around the character
+    public createAattackCUbe() {
+        // Create the cube around the character
+        this.attackCube = MeshBuilder.CreateBox("attackCube", { size: 2.5 }, this.scene);
+        this.attackCube.position = this.mesh.position.clone();
+
+        // Create a material for the cube
+        const attackMaterial = new StandardMaterial("attackMaterial", this.scene);
+        attackMaterial.diffuseColor = Color3.Red();
+        attackMaterial.alpha = 0;
+        this.attackCube.material = attackMaterial;
+    }
+
+    public attack(isAttacking: boolean){
+        if (this.attackCube && this.attackCube.material) {
+            if(isAttacking){
+                this.attackCube.material.alpha = 0.2;
+            }
+            else{
+                this.attackCube.material.alpha = 0;
+            }
+        }
+
     }
 }

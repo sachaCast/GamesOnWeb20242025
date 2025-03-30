@@ -5,7 +5,9 @@ export default class Character {
     public mesh: Mesh;
     private scene: Scene;
     public speed: number = 0.1;
-    public jumpStrength: number = 0.3;
+    //public jumpStrength: number = 0.3;
+    public jumpStrength: number = 0;
+    public defaultJumpStrength: number = 0.3;
     public gravity: number = -0.005;
     public velocityY: number = 0;
     public isJumping: boolean = false;
@@ -34,6 +36,7 @@ export default class Character {
     public move(direction: Vector3, _boundary: number) {
         if (this.isCrawling) {
             direction.scaleInPlace(0.3); // Reduce speed while crawling
+            this.mesh.position.y = 0.2;
         }
         this.mesh.moveWithCollisions(direction.scale(this.speed));
         // Make the attackCube move with the character
@@ -47,7 +50,7 @@ export default class Character {
     // Jump method
     public jump() {
         if (this.canJump) {
-            this.velocityY = this.jumpStrength;
+            this.velocityY = this.defaultJumpStrength;
             this.isJumping = true;
             this.canJump = false;
             setTimeout(() => this.canJump = true, 500); // Delay before the next jump
@@ -95,12 +98,14 @@ export default class Character {
         this.isCrawling = start;
         if (start) {
             this.mesh.scaling.y = 0.5;
-            this.mesh.position.y = 0.3;
-            this.jumpStrength = 0.05;
-        } else {
+            this.isJumping = true; 
+            this.canJump = true; 
+            this.jumpStrength = this.defaultJumpStrength * 0.5; 
+        } 
+        if (!start) {
             this.mesh.scaling.y = 1;
             this.mesh.position.y = 0.6;
-            this.jumpStrength = 0.15;
+            this.jumpStrength = this.defaultJumpStrength;
         }
     }
 

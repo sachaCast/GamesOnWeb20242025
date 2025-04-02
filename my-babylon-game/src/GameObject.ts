@@ -3,7 +3,6 @@ import "@babylonjs/loaders";
 
 export class GameObject {
     public mesh: Mesh | null = null; // Основная 3D-модель
-    public hp = 3;
     public collisionCube: Mesh | null = null;
 
     constructor(scene: Scene, modelPath: string, fileName: string, position: Vector3, scale: Vector3, onLoad?: (mesh: Mesh) => void) {
@@ -45,8 +44,4 @@ export class GameObject {
         return this.mesh !== null;
     }
 
-
-    public getHit() {
-        this.hp -= 1;
-    }
 }

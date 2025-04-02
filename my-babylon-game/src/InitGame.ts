@@ -6,7 +6,7 @@ let levelTest: TestLevel;
 
 function createTestLevel(): Scene {
     levelTest = new TestLevel();
-    const mainCharacter = new Character(levelTest.scene, new Vector3(0, 0.6, 0), Color3.Red());
+    const mainCharacter = new Character(levelTest.scene, new Vector3(0, 0.6, 0), Color3.Red(),levelTest);
     // Appel de la fonction starting pour démarrer la boucle de rendu
     levelTest.starting(mainCharacter);
 

@@ -5,6 +5,11 @@ import Character from "./character";
 export class Spider extends GameObject {
     private speed: number;
     public collisionCube: Mesh | null = null;
+    public hp = 3;
+    private isHit: boolean = false;
+    private hitDirection: Vector3 = Vector3.Zero();
+    private hitTimer: number = 0;
+    private hitDuration: number = 10;
 
     constructor(scene: Scene, modelPath: string, fileName: string, position: Vector3, scale: Vector3, speed: number = 0.1) {
         super(scene, modelPath, fileName, position, scale, (mesh) => {
@@ -88,6 +93,34 @@ export class Spider extends GameObject {
         } else {
             // Si l'araignée est suffisamment proche du personnage, elle s'arrête
             // (elle ne bouge plus et peut éventuellement changer d'état ou autre comportement)
+        }
+    }
+
+    public getHit(direction?: Vector3) {
+        this.hp -= 1;
+        this.isHit = true;
+        this.hitTimer = this.hitDuration;
+
+        // Si une direction est spécifiée, on l'utilise en annulant le Y
+        this.hitDirection = direction ? new Vector3(direction.x, 0, direction.z) : new Vector3(0, 0, -1);
+        this.hitDirection.normalize(); // Normaliser la direction (important pour avoir un mouvement constant)
+    }
+
+    public update() {
+        if (this.isHit && this.hitTimer > 0) {
+            // Appliquer le recul uniquement sur X/Z
+            const bounceForce = 0.2;
+            if (this.collisionCube) {
+                this.collisionCube.position.x += this.hitDirection.x * bounceForce;
+                this.collisionCube.position.z += this.hitDirection.z * bounceForce;
+            }
+            if (this.mesh) {
+                this.mesh.position.x += this.hitDirection.x * bounceForce;
+                this.mesh.position.z += this.hitDirection.z * bounceForce;
+            }
+            this.hitTimer--;
+        } else {
+            this.isHit = false;
         }
     }
 

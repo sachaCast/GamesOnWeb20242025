@@ -3,7 +3,7 @@ import "@babylonjs/loaders";
 import Character from "./character";
 import { GameObject } from "./GameObject";
 import { CSG } from "@babylonjs/core/Meshes/csg";
-
+import { BoundingBox } from "@babylonjs/core/Culling/boundingBox";
 import { Spider } from "./Spider";
 
 export default class TestLevel {
@@ -17,6 +17,8 @@ export default class TestLevel {
     public engine: Engine;
     public boundary = this.groundSize / 2 - 1; // Character movement boundaries
     public isAttacking = false;
+    private healthDisplay: HTMLElement;
+    private initialCharacterPosition: Vector3 = new Vector3(0, 0.6, 0);
 
     constructor() {
         //this.mainCharacter = mainCharacter;
@@ -29,7 +31,21 @@ export default class TestLevel {
         this.loadDonuts();
         this.createBorders();
         this.loadSpiders();
+        this.healthDisplay = document.getElementById("healthDisplay")!;
+    }
 
+    public resetLevel() {
+        this.scene.dispose();
+        this.scene = new Scene(this.engine);
+        this.spiders = [];
+        this.donuts = [];
+        this.createLighting();
+        this.createGround();
+        this.createCube();
+        this.loadDonuts();
+        this.createBorders();
+        this.loadSpiders();
+        this.healthDisplay = document.getElementById("healthDisplay")!;
     }
 
     private createLighting() {
@@ -91,16 +107,26 @@ export default class TestLevel {
     }
 
     private checkCollisionWithSpiders(mainCharacter: Character,bounceForce: number) {
-        this.spiders.forEach(spider => {
+        if (!mainCharacter.isAlive) return;
+        const spidersToCheck = [...this.spiders];
+
+        spidersToCheck.forEach(spider => {
             if (spider.collisionCube) {
                 const distance = Vector3.Distance(mainCharacter.mesh.position, spider.collisionCube.position);
                 const distanceCube = Vector3.Distance(this.cube.position, spider.collisionCube.position);
 
-                if (distance < 2 ) { // Collision threshold
+                if (distance < 2) { // Collision threshold
+                    // Calculer la direction du coup (de l'araignée vers le personnage)
                     const direction = mainCharacter.mesh.position.subtract(spider.collisionCube.position).normalize();
+
+                    // Appliquer le recul au personnage
+                    mainCharacter.getHit(direction);
+
+                    // Appliquer aussi le petit bounce existant
                     mainCharacter.mesh.position.x += direction.x * bounceForce;
                     mainCharacter.mesh.position.z += direction.z * bounceForce;
                 }
+
                 if ((distanceCube < 2 && !mainCharacter.isGrabbing)) { // Collision threshold
                     const direction = mainCharacter.mesh.position.subtract(spider.collisionCube.position).normalize();
                     this.cube.position.x += direction.x * bounceForce;
@@ -139,7 +165,7 @@ export default class TestLevel {
         });
     }
 
-    starting(mainCharacter: Character){
+    starting(mainCharacter: Character) : Character{
         const bounceForce = 0.5;
         const camera = new FollowCamera("FollowCam", new Vector3(0, 5, -10), this.scene);
         camera.lockedTarget = mainCharacter.mesh; // The camera follows the character
@@ -162,7 +188,46 @@ export default class TestLevel {
             "ArrowRight": "left",
             "ShiftLeft": "crawl",
             "KeyC": "grab",
-            "KeyI": "attack",
+        };
+
+        this.scene.onPointerDown = (evt, pickInfo) => {
+            if (evt.button === 0) { // Clic gauche
+                this.isAttacking = true;
+                console.log("Attaque avec clic gauche !");
+
+                // Vérifier la collision PHYSIQUE entre attackCube et les araignées
+                this.spiders.forEach(spider => {
+                    if (spider.collisionCube && mainCharacter.attackCube) {
+                        const spiderBox = spider.collisionCube.getBoundingInfo().boundingBox;
+                        const attackBox = mainCharacter.attackCube.getBoundingInfo().boundingBox;
+
+                        if (BoundingBox.Intersects(spiderBox, attackBox)) {
+                            // Calculer la direction du coup (du personnage vers l'araignée)
+                            const direction = spider.collisionCube.position.subtract(mainCharacter.mesh.position).normalize();
+
+                            // Infliger des dégâts avec la direction
+                            spider.getHit(direction);
+
+                            console.log("Araignée touchée ! HP restant :", spider.hp);
+
+                            if (spider.hp <= 0) {
+                                spider.mesh?.dispose();
+                                spider.collisionCube?.dispose();
+                                const index = this.spiders.indexOf(spider);
+                                if (index !== -1) {
+                                    this.spiders.splice(index, 1);
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        this.scene.onPointerUp = (evt) => {
+            if (evt.button === 0) {
+                this.isAttacking = false;
+            }
         };
 
         window.addEventListener("keydown", (event) => {
@@ -186,21 +251,6 @@ export default class TestLevel {
             if (event.code === "Space" && mainCharacter.isGrounded() && mainCharacter.canJump) {
                 mainCharacter.jump();
             }
-            if (event.code === "KeyI") {
-                this.isAttacking = true;
-                console.log("attack");
-                this.spiders.forEach(spider => {
-                    spider.getHit();
-                    if(spider.hp<=0){
-                        spider.mesh?.dispose();
-                        spider.collisionCube?.dispose();
-                        const index = this.spiders.indexOf(spider);
-                        if (index !== -1) {
-                            this.spiders.splice(index, 1);
-                        }
-                    }
-                });
-            }
         });
 
         // Handle key release events
@@ -216,12 +266,11 @@ export default class TestLevel {
             if (event.code === "KeyC") {
                 mainCharacter.isGrabbing = false;
             }
-            if (event.code === "KeyI") {
-                this.isAttacking = false;
-            }
         });
 
         this.engine.runRenderLoop(() => {
+            this.healthDisplay.textContent = `HP: ${mainCharacter.currentHP}/${mainCharacter.maxHP}`;
+            if (!mainCharacter.isAlive) return;
 
             let moveDirection = new Vector3(0, 0, 0);
             // Determine movement direction
@@ -230,6 +279,8 @@ export default class TestLevel {
             if (keys["left"]) moveDirection.x -= 1;
             if (keys["right"]) moveDirection.x += 1;
             mainCharacter.attack(this.isAttacking);
+            // Mettre à jour le recul du personnage
+            mainCharacter.updateHit();
 
             moveDirection.normalize();
             mainCharacter.move(moveDirection, this.boundary);
@@ -239,7 +290,10 @@ export default class TestLevel {
 
             // Check for collisions with any of the donuts
             this.checkCollisionWithDonuts(mainCharacter,bounceForce);
-            //this.spiders.forEach(spider => { spider.crawl(mainCharacter); });
+            this.spiders.forEach(spider => {
+                spider.crawl(mainCharacter);
+                spider.update(); // Ajoutez cette ligne
+            });
             this.checkBoundaries(mainCharacter.mesh);
             this.checkCollisionWithSpiders(mainCharacter,bounceForce);
 
@@ -256,7 +310,7 @@ export default class TestLevel {
 
             this.scene.render();
         });
-
+        return mainCharacter;
     }
 
 

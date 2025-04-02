@@ -1,5 +1,6 @@
 import { Scene, Vector3, MeshBuilder, StandardMaterial, Color3, Mesh, Ray } from "@babylonjs/core";
 import { GameObject } from "./GameObject";
+import TestLevel from "./TestLevel";
 
 export default class Character {
     public mesh: Mesh;
@@ -15,10 +16,21 @@ export default class Character {
     public canJump: boolean = true;
     public isGrabbing: boolean = false;
     public attackCube: Mesh | null = null;
+    private isHit: boolean = false;
+    private hitDirection: Vector3 = Vector3.Zero();
+    private hitTimer: number = 0;
+    private readonly hitDuration: number = 10; // Durée du recul en frames
+    private readonly hitBounceForce: number = 0.3; // Force du recul
+    public maxHP: number = 10;
+    public currentHP: number = 10;
+    public isAlive: boolean = true;
+    private initialPosition: Vector3;
+    private level: TestLevel;
 
-    constructor(scene: Scene, position: Vector3, color: Color3) {
+    constructor(scene: Scene, position: Vector3, color: Color3,level: TestLevel) {
+        this.level = level;
         this.scene = scene;
-
+        this.initialPosition = position.clone();
         // Create character (sphere)
         this.mesh = MeshBuilder.CreateSphere("character", { diameter: 1.2 }, scene);
         this.mesh.position = position;
@@ -98,10 +110,10 @@ export default class Character {
         this.isCrawling = start;
         if (start) {
             this.mesh.scaling.y = 0.5;
-            this.isJumping = true; 
-            this.canJump = true; 
-            this.jumpStrength = this.defaultJumpStrength * 0.5; 
-        } 
+            this.isJumping = true;
+            this.canJump = true;
+            this.jumpStrength = this.defaultJumpStrength * 0.5;
+        }
         if (!start) {
             this.mesh.scaling.y = 1;
             this.mesh.position.y = 0.6;
@@ -137,5 +149,57 @@ export default class Character {
             }
         }
 
+    }
+
+    public getHit(direction: Vector3) {
+        if (!this.isAlive) return;
+        this.currentHP -= 1; // Perd 1 HP
+        console.log(`Player hit! HP remaining: ${this.currentHP}/${this.maxHP}`);
+
+        // Appliquer le recul
+        this.isHit = true;
+        this.hitTimer = this.hitDuration;
+        this.hitDirection = new Vector3(direction.x, 0, direction.z).normalize();
+
+        if (this.currentHP <= 0) {
+            this.die();
+        }
+    }
+
+    public die() {
+        this.isAlive = false;
+        console.log("Player died!");
+        // Désactiver le mesh temporairement
+        this.mesh.setEnabled(false);
+        if (this.attackCube) this.attackCube.setEnabled(false);
+
+        // Respawn après un délai
+        setTimeout(() => {
+            this.level.resetLevel();
+            this.respawn();
+        }, 2000);
+    }
+
+    public respawn() {
+        this.level.resetLevel();
+        const newCharacter = new Character(this.level.scene, this.initialPosition, Color3.Red(), this.level);
+        this.level.starting(newCharacter);
+    }
+
+    public updateHit() {
+        if (this.isHit && this.hitTimer > 0) {
+            // Appliquer le recul seulement sur X/Z
+            this.mesh.position.x += this.hitDirection.x * this.hitBounceForce;
+            this.mesh.position.z += this.hitDirection.z * this.hitBounceForce;
+
+            if (this.attackCube) {
+                this.attackCube.position.x = this.mesh.position.x;
+                this.attackCube.position.z = this.mesh.position.z;
+            }
+
+            this.hitTimer--;
+        } else {
+            this.isHit = false;
+        }
     }
 }

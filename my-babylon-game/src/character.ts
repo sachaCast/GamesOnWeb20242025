@@ -1,5 +1,5 @@
 import { Scene, Vector3, MeshBuilder, StandardMaterial, Color3, Mesh, Ray } from "@babylonjs/core";
-import { GameObject } from "./GameObject";
+//import { GameObject } from "./GameObject";
 import TestLevel from "./TestLevel";
 
 export default class Character {
@@ -65,7 +65,7 @@ export default class Character {
             this.velocityY = this.defaultJumpStrength;
             this.isJumping = true;
             this.canJump = false;
-            setTimeout(() => this.canJump = true, 500); // Delay before the next jump
+            setTimeout(() => this.canJump = true, 600); // Delay before the next jump
         }
     }
 
@@ -110,9 +110,9 @@ export default class Character {
         this.isCrawling = start;
         if (start) {
             this.mesh.scaling.y = 0.5;
-            this.isJumping = true;
-            this.canJump = true;
-            this.jumpStrength = this.defaultJumpStrength * 0.5;
+            //this.isJumping = true;
+            //this.canJump = true;
+            //this.jumpStrength = this.defaultJumpStrength * 0.5;
         }
         if (!start) {
             this.mesh.scaling.y = 1;

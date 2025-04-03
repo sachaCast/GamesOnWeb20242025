@@ -1,7 +1,7 @@
 import { Scene, Texture, Engine, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, SceneLoader, Mesh, Camera, FollowCamera } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import Character from "./character";
-import { GameObject } from "./GameObject";
+//import { GameObject } from "./GameObject";
 import { CSG } from "@babylonjs/core/Meshes/csg";
 import { BoundingBox } from "@babylonjs/core/Culling/boundingBox";
 import { Spider } from "./Spider";
@@ -10,8 +10,8 @@ export default class TestLevel {
     public scene: Scene;
     private groundSize: number = 20;
     public ground: any;
-    public cube: any;
-    public donuts: GameObject[] = []; // USE GameObject INSTEAD OF Mesh[]
+    //public cube: any;
+    //public donuts: GameObject[] = []; // USE GameObject INSTEAD OF Mesh[]
     public spiders: Spider[] = []; // USE GameObject INSTEAD OF Mesh[]
     public canvas: HTMLCanvasElement;
     public engine: Engine;
@@ -27,8 +27,8 @@ export default class TestLevel {
         this.scene = new Scene(this.engine);
         this.createLighting();
         this.createGround();
-        this.createCube();
-        this.loadDonuts();
+        //this.createCube();
+        //this.loadDonuts();
         this.createBorders();
         this.loadSpiders();
         this.healthDisplay = document.getElementById("healthDisplay")!;
@@ -38,11 +38,11 @@ export default class TestLevel {
         this.scene.dispose();
         this.scene = new Scene(this.engine);
         this.spiders = [];
-        this.donuts = [];
+        //this.donuts = [];
         this.createLighting();
         this.createGround();
-        this.createCube();
-        this.loadDonuts();
+        //this.createCube();
+        //this.loadDonuts();
         this.createBorders();
         this.loadSpiders();
         this.healthDisplay = document.getElementById("healthDisplay")!;
@@ -57,22 +57,22 @@ export default class TestLevel {
         this.ground = MeshBuilder.CreateGround("ground", { width: this.groundSize*2, height: this.groundSize }, this.scene);
         this.ground.position.x = this.groundSize-30;
         const groundMaterial = new StandardMaterial("groundMat", this.scene);
-        const groundTexture = new Texture("/grass.jpg", this.scene);
+        const groundTexture = new Texture("/textures/scratched-old-rotten-wood_spec_1k.jpg", this.scene);
         groundMaterial.diffuseTexture = groundTexture;
         this.ground.material = groundMaterial;
         this.ground.checkCollisions = true;
     }
 
-    private createCube() {
+    /*private createCube() {
         this.cube = MeshBuilder.CreateBox("pushableCube", { size: 1 }, this.scene);
         this.cube.position = new Vector3(3, 0.5, 3);
         const cubeMaterial = new StandardMaterial("cubeMat", this.scene);
         cubeMaterial.diffuseColor = Color3.Blue();
         this.cube.material = cubeMaterial;
         this.cube.checkCollisions = true;
-    }
+    }*/
 
-    private loadDonuts() {
+    /*private loadDonuts() {
         const donutPositions = [
             new Vector3(5, 1.3, 0),
             new Vector3(-5, 1.3, 0),
@@ -85,7 +85,7 @@ export default class TestLevel {
         });
 
         console.log("Donuts are being loaded...");
-    }
+    }*/
 
     private loadSpiders(){
         const spidersPositions = [
@@ -113,7 +113,7 @@ export default class TestLevel {
         spidersToCheck.forEach(spider => {
             if (spider.collisionCube) {
                 const distance = Vector3.Distance(mainCharacter.mesh.position, spider.collisionCube.position);
-                const distanceCube = Vector3.Distance(this.cube.position, spider.collisionCube.position);
+                //const distanceCube = Vector3.Distance(this.cube.position, spider.collisionCube.position);
 
                 if (distance < 2) { // Collision threshold
                     // Calculer la direction du coup (de l'araignée vers le personnage)
@@ -127,23 +127,23 @@ export default class TestLevel {
                     mainCharacter.mesh.position.z += direction.z * bounceForce;
                 }
 
-                if ((distanceCube < 2 && !mainCharacter.isGrabbing)) { // Collision threshold
+                /*if ((distanceCube < 2 && !mainCharacter.isGrabbing)) { // Collision threshold
                     const direction = mainCharacter.mesh.position.subtract(spider.collisionCube.position).normalize();
-                    this.cube.position.x += direction.x * bounceForce;
-                    this.cube.position.z += direction.z * bounceForce;
+                    //this.cube.position.x += direction.x * bounceForce;
+                    //this.cube.position.z += direction.z * bounceForce;
                 }
                 if ((distance < 2 && mainCharacter.isGrabbing) || (distanceCube < 2 && mainCharacter.isGrabbing)) { // Collision threshold
                     const direction = mainCharacter.mesh.position.subtract(spider.collisionCube.position).normalize();
                     mainCharacter.mesh.position.x += direction.x * bounceForce;
                     mainCharacter.mesh.position.z += direction.z * bounceForce;
-                    this.cube.position.x += direction.x * bounceForce;
-                    this.cube.position.z += direction.z * bounceForce;
-                }
+                    //this.cube.position.x += direction.x * bounceForce;
+                    //this.cube.position.z += direction.z * bounceForce;
+                }*/
             }
         });
     }
 
-    private checkCollisionWithDonuts(mainCharacter: Character,bounceForce: number) {
+    /*private checkCollisionWithDonuts(mainCharacter: Character,bounceForce: number) {
         this.donuts.forEach(donut => {
             if (donut.mesh) {
                 const distance = Vector3.Distance(mainCharacter.mesh.position, donut.mesh.position);
@@ -163,7 +163,7 @@ export default class TestLevel {
                 }
             }
         });
-    }
+    }*/
 
     starting(mainCharacter: Character) : Character{
         const bounceForce = 0.5;
@@ -287,9 +287,10 @@ export default class TestLevel {
             // Gravity
             mainCharacter.applyGravity();
             mainCharacter.applyGravity();
+            //mainCharacter.applyGravity();
 
             // Check for collisions with any of the donuts
-            this.checkCollisionWithDonuts(mainCharacter,bounceForce);
+            //this.checkCollisionWithDonuts(mainCharacter,bounceForce);
             this.spiders.forEach(spider => {
                 spider.crawl(mainCharacter);
                 spider.update(); // Ajoutez cette ligne
@@ -297,16 +298,16 @@ export default class TestLevel {
             this.checkBoundaries(mainCharacter.mesh);
             this.checkCollisionWithSpiders(mainCharacter,bounceForce);
 
-            const cubeDistance = Vector3.Distance(mainCharacter.mesh.position, this.cube.position);
+            /*const cubeDistance = Vector3.Distance(mainCharacter.mesh.position, this.cube.position);
             if (cubeDistance < 1.5 && mainCharacter.isGrabbing) {
                 mainCharacter.speed = 0.025;
-                this.cube.moveWithCollisions(moveDirection.scale(mainCharacter.speed));
-                this.cube.position.y = this.cube.scaling.y * 0.5;
-                this.checkBoundaries(this.cube);
+                //this.cube.moveWithCollisions(moveDirection.scale(mainCharacter.speed));
+                //this.cube.position.y = this.cube.scaling.y * 0.5;
+                //this.checkBoundaries(this.cube);
             }
             else if (cubeDistance > 1.5){
                 mainCharacter.speed = 0.1;
-            }
+            }*/
 
             this.scene.render();
         });
@@ -316,7 +317,13 @@ export default class TestLevel {
 
     private createBorders() {
         const wallMaterial = new StandardMaterial("wallMat", this.scene);
-        wallMaterial.diffuseColor = new Color3(0.6, 0.6, 0.6); // Gray walls
+        //wallMaterial.diffuseColor = new Color3(0.6, 0.6, 0.6); // Gray walls
+        const wallTexture = new Texture("/textures/old-lime-plaster_spec_1k.jpg", this.scene); 
+        wallMaterial.diffuseTexture = wallTexture;
+
+        // Optional: tile the texture to avoid stretching
+        wallTexture.uScale = 4;
+        wallTexture.vScale = 4;
 
         const wallHeight = 10;
         const wallThickness = 0.2;

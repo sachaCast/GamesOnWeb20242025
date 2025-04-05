@@ -1,4 +1,4 @@
-import { Scene, Texture, Engine, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, SceneLoader, Mesh, Camera, FollowCamera } from "@babylonjs/core";
+import { Scene, Texture, Engine, HemisphericLight, Vector3, MeshBuilder, StandardMaterial, Color3, SceneLoader, Mesh, Camera, FollowCamera, TransformNode, Tools } from "@babylonjs/core";
 import "@babylonjs/loaders";
 import Character from "./character";
 //import { GameObject } from "./GameObject";
@@ -18,7 +18,9 @@ export default class TestLevel {
     public boundary = this.groundSize / 2 - 1; // Character movement boundaries
     public isAttacking = false;
     private healthDisplay: HTMLElement;
-    private initialCharacterPosition: Vector3 = new Vector3(0, 0.6, 0);
+    //private initialCharacterPosition: Vector3 = new Vector3(0, 0.6, 0);
+    private positionDisplay: HTMLElement;
+
 
     constructor() {
         //this.mainCharacter = mainCharacter;
@@ -27,11 +29,17 @@ export default class TestLevel {
         this.scene = new Scene(this.engine);
         this.createLighting();
         this.createGround();
+        this.loadLevel();
+        //this.scene.collisionsEnabled = true;
         //this.createCube();
         //this.loadDonuts();
         this.createBorders();
         this.loadSpiders();
         this.healthDisplay = document.getElementById("healthDisplay")!;
+        this.positionDisplay = document.getElementById("positionDisplay")!;
+        this.scene.collisionsEnabled = true;
+
+        
     }
 
     public resetLevel() {
@@ -41,11 +49,15 @@ export default class TestLevel {
         //this.donuts = [];
         this.createLighting();
         this.createGround();
+        this.loadLevel();
+        //this.scene.collisionsEnabled = true;
         //this.createCube();
         //this.loadDonuts();
         this.createBorders();
         this.loadSpiders();
         this.healthDisplay = document.getElementById("healthDisplay")!;
+        this.scene.collisionsEnabled = true;
+
     }
 
     private createLighting() {
@@ -55,6 +67,7 @@ export default class TestLevel {
 
     private createGround() {
         this.ground = MeshBuilder.CreateGround("ground", { width: this.groundSize*2, height: this.groundSize }, this.scene);
+        //this.ground.position = new Vector3(-39.99, -7.99, 0.18);
         this.ground.position.x = this.groundSize-30;
         const groundMaterial = new StandardMaterial("groundMat", this.scene);
         const groundTexture = new Texture("/textures/scratched-old-rotten-wood_spec_1k.jpg", this.scene);
@@ -63,6 +76,67 @@ export default class TestLevel {
         this.ground.checkCollisions = true;
     }
 
+  
+    /*private loadLevel(): void {
+        SceneLoader.LoadAssetContainer("/", "level1.glb", this.scene, (container) => {
+                const levelRoot = new TransformNode("levelRoot", this.scene);
+    
+                // Parent all imported meshes to a root node
+                container.meshes.forEach(mesh => {
+                    mesh.parent = levelRoot;
+                    mesh.checkCollisions = true; 
+                    //mesh.scaling = new Vector3(1, 1, 1);
+                    //mesh.receiveShadows = true;
+                    //mesh.scaling.x = -1;
+                    //mesh.scaling.y = -1;
+                    //mesh.scaling.z = -1;
+                });
+    
+                // Move entire level to desired position
+                levelRoot.position = new Vector3(-47, -10.50, 0);
+                //levelRoot.rotation.y = Math.PI / 2;
+                //levelRoot.rotation = new Vector3(0, Tools.ToRadians(90), 0);
+
+                const invisibleGround = MeshBuilder.CreateGround("invisibleGround", {
+                    width: 100,
+                    height: 100,
+                }, this.scene);
+        
+                invisibleGround.position = new Vector3(-47, -10.5, 0);
+                invisibleGround.visibility = 0;
+                invisibleGround.checkCollisions = true;
+                invisibleGround.isPickable = false;
+                invisibleGround.freezeWorldMatrix();
+                container.addAllToScene();
+            }
+        );
+    }*/
+    private loadLevel(): void {
+        SceneLoader.ImportMesh(null, "/", "level1.glb", this.scene, (meshes) => {
+            console.log("Level loaded!", meshes);
+
+            meshes.forEach(mesh => {
+              mesh.checkCollisions = true;
+              mesh.receiveShadows = true; 
+            });
+            meshes[0].position = new Vector3(-50.5, -10.50, 0);
+            meshes[0].rotation = new Vector3(0, Tools.ToRadians(-90), 0);
+
+            /*Add invisible ground under the model !!!!!!!!! IF WE NEED IT !!!!!!!
+            const invisibleGround = MeshBuilder.CreateGround("invisibleGround", {
+                width: 200,
+                height: 200
+            }, this.scene);
+
+            invisibleGround.position = new Vector3(-50.5, -10.51, 0); // Just below the level
+            invisibleGround.isVisible = false; // Make it invisible
+            invisibleGround.checkCollisions = true; // Enable collision*/
+
+        });
+    }     
+    
+    
+    
     /*private createCube() {
         this.cube = MeshBuilder.CreateBox("pushableCube", { size: 1 }, this.scene);
         this.cube.position = new Vector3(3, 0.5, 3);
@@ -297,6 +371,11 @@ export default class TestLevel {
             });
             this.checkBoundaries(mainCharacter.mesh);
             this.checkCollisionWithSpiders(mainCharacter,bounceForce);
+
+
+            const pos = mainCharacter.mesh.position;
+            this.positionDisplay.textContent = `Position: (x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)})`;
+
 
             /*const cubeDistance = Vector3.Distance(mainCharacter.mesh.position, this.cube.position);
             if (cubeDistance < 1.5 && mainCharacter.isGrabbing) {

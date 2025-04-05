@@ -48,7 +48,7 @@ export default class Character {
     public move(direction: Vector3, _boundary: number) {
         if (this.isCrawling) {
             direction.scaleInPlace(0.3); // Reduce speed while crawling
-            this.mesh.position.y = 0.2;
+            //this.mesh.position.y -= 0.1;
         }
         this.mesh.moveWithCollisions(direction.scale(this.speed));
         // Make the attackCube move with the character
@@ -65,7 +65,7 @@ export default class Character {
             this.velocityY = this.defaultJumpStrength;
             this.isJumping = true;
             this.canJump = false;
-            setTimeout(() => this.canJump = true, 600); // Delay before the next jump
+            setTimeout(() => this.canJump = true, 500); // Delay before the next jump
         }
     }
 
@@ -74,18 +74,16 @@ export default class Character {
         if (this.isJumping) {
             this.mesh.moveWithCollisions(new Vector3(0, this.velocityY, 0));
             this.velocityY += this.gravity;
-            //if (this.mesh.position.y <= -6) {
-                // character.position.y = 0.6;
-                // this.isJumping = false;
-                //this.velocityY = 0;
-            //}
+          
         }
     }
 
     // Check if the character is on the ground
     public isGrounded(): boolean {
-        const ray = new Ray(this.mesh.position, new Vector3(0, -1, 0), 1.2); // Reduced radius
-        const hit = this.scene.pickWithRay(ray);
+        const ray = new Ray(this.mesh.position, new Vector3(0, -1, 0), 999999); 
+        const hit = this.scene.pickWithRay(ray, (mesh) => {
+            return mesh.isPickable && mesh.checkCollisions && mesh !== this.mesh;
+        });
         return hit !== null && hit.pickedMesh !== null;
     }
 
@@ -110,15 +108,21 @@ export default class Character {
         this.isCrawling = start;
         if (start) {
             this.mesh.scaling.y = 0.5;
-            //this.isJumping = true;
-            //this.canJump = true;
-            //this.jumpStrength = this.defaultJumpStrength * 0.5;
         }
         if (!start) {
             this.mesh.scaling.y = 1;
-            this.mesh.position.y = 0.6;
             this.jumpStrength = this.defaultJumpStrength;
         }
+        /*if (start) {
+            this.mesh.scaling.y = 0.5;
+            this.mesh.ellipsoid = new Vector3(0.5, 0.5, 0.5); // половина высоты
+            this.mesh.ellipsoidOffset = new Vector3(0, 0.25, 0); // ниже, т.к. персонаж "пригнулся"
+        } else {
+            this.mesh.scaling.y = 1;
+            this.mesh.ellipsoid = new Vector3(0.5, 1, 0.5);
+            this.mesh.ellipsoidOffset = new Vector3(0, 0.5, 0);
+        }*/
+        
     }
 
     // Interaction with objects (grabbing)

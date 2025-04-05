@@ -1,64 +1,68 @@
-# GamesOnWeb20242025
-Project Overview
+# 🎮 GamesOnWeb2024–2025 — *Lisani & Nisali*
 
-Lisani & Nisali is a 3D adventure game created using TypeScript and Babylon.js. The game is about a protagonist who travels to the dream world to confront his fears. At the beginning of the game, players can choose between Lisani (female) and Nisali (male).
+## 🌌 Project Overview
 
-Development Approach
+**Lisani & Nisali** is a 3D adventure game built with **TypeScript** and **Babylon.js**.  
+The story follows a protagonist who enters a dream world to confront his fears.  
+At the beginning of the game, players choose between two characters:
+- **Lisani** (female)
+- **Nisali** (male)
 
-A new Vite project was initialized to create the game.
-3D objects were pre-designed in Blender and then imported into the game using Babylon.js.
-We implemented different classes for a characte, for the game objects and for the test level.
+## 🚀 Development Approach
 
-Gameplay Features
+- A new Vite project was initialized to structure the game environment.
+- 3D models were pre-designed in **Blender**, exported as `.glb`, and imported using Babylon.js.
+- Game architecture includes separate classes for:
+  - The **character**
+  - General **game objects**
+  - The **test level**
 
-Character movement: The protagonist can walk, jump, crawl. 
-Hotkeys:
+## 🕹 Gameplay Features
 
-🎮 Movement Controls:
+### 🎮 Movement Controls
 
-Key	Action
+| Key             | Action         |
+|------------------|----------------|
+| `W` / `ArrowUp`    | Move forward   |
+| `S` / `ArrowDown`  | Move backward  |
+| `A` / `ArrowLeft`  | Move left      |
+| `D` / `ArrowRight` | Move right     |
 
-W / Arrow Up	Move Forward
+### 🏃‍♂️ Character Actions
 
-S / Arrow Down	Move Backward
+| Key         | Action                                     |
+|--------------|---------------------------------------------|
+| `Spacebar`   | Jump (Only if not crawling)                |
+| `ShiftLeft`  | Crawl (Reduces height and movement speed) |
+| `C`          | Grab (Allows grabbing objects like the cube) |
 
-A / Arrow Left	Move Left
+- If the **character** or **cube** touches the **donuts**, they bounce back.
+- A **cube** was added to demonstrate jumping and pushing mechanics.
 
-D / Arrow Right	Move Right
+---
 
+## ⚔️ Combat System
 
-🏃‍♂️ Character Actions:
+- **Left Click** = Attack.
+- Enemies must be inside the **red transparent square** (attack range).
+- You must hit **spiders 3 times** to kill them.
+- If the **player is hit 10 times**, they **die and respawn** at the initial point.
+- Spider AI: they **crawl toward the player** by default.
 
-Key	Action
+> 💡 **Want to disable spider AI?**  
+> Simply comment out the line below in `TestLevel.ts`:
+```ts
+// spider.crawl(mainCharacter);
 
-Spacebar	Jump (Only if the character is not crawling)
+##🛠 Installation & Setup
 
-Shift Left	Crawl (Reduces height and movement speed)
+# 1. Clone the repository
+git clone <your-repo-link>
+cd <your-project-folder>
 
-C	Grab (Allows grabbing objects like the cube)
-
-
-Whan character or cube catch the donuts it bounds.
-
-Cube was added to demonstrate where the character can jump.
-
-Installation & Setup
-
-To run this project locally, follow these steps:
-
-1. Clone the repository
-   
-git clone repo-link
-
-cd project-folder
-
-
-3. Install dependencies
-
+# 2. Install dependencies
 npm install
-
 npm install @babylonjs/core @babylonjs/loaders
 
-4. Start the development server
-
+# 3. Start the dev server
 npm run dev

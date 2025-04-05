@@ -53,9 +53,10 @@ At the beginning of the game, players choose between two characters:
 > Simply comment out the line below in `TestLevel.ts`:
 ```ts
 // spider.crawl(mainCharacter);
-
+```
 ##🛠 Installation & Setup
 
+```bash
 # 1. Clone the repository
 git clone <your-repo-link>
 cd <your-project-folder>
@@ -66,3 +67,4 @@ npm install @babylonjs/core @babylonjs/loaders
 
 # 3. Start the dev server
 npm run dev
+```

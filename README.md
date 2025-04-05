@@ -54,7 +54,7 @@ At the beginning of the game, players choose between two characters:
 ```ts
 // spider.crawl(mainCharacter);
 ```
-##🛠 Installation & Setup
+## 🛠 Installation & Setup
 
 ```bash
 # 1. Clone the repository

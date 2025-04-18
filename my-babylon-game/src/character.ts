@@ -74,13 +74,13 @@ export default class Character {
         if (this.isJumping) {
             this.mesh.moveWithCollisions(new Vector3(0, this.velocityY, 0));
             this.velocityY += this.gravity;
-          
+
         }
     }
 
     // Check if the character is on the ground
     public isGrounded(): boolean {
-        const ray = new Ray(this.mesh.position, new Vector3(0, -1, 0), 999999); 
+        const ray = new Ray(this.mesh.position, new Vector3(0, -1, 0), 999999);
         const hit = this.scene.pickWithRay(ray, (mesh) => {
             return mesh.isPickable && mesh.checkCollisions && mesh !== this.mesh;
         });
@@ -122,7 +122,7 @@ export default class Character {
             this.mesh.ellipsoid = new Vector3(0.5, 1, 0.5);
             this.mesh.ellipsoidOffset = new Vector3(0, 0.5, 0);
         }*/
-        
+
     }
 
     // Interaction with objects (grabbing)

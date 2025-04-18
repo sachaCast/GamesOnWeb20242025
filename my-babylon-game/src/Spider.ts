@@ -39,35 +39,25 @@ export class Spider extends GameObject {
             depth: size.z
         }, scene);
 
-        // Appliquer la position et l'échelle
         this.collisionCube.position = position;
         this.collisionCube.scaling = scale;
-
-        // Rendre le cube invisible en appliquant un matériau transparent
         const material = new StandardMaterial("collisionMaterial", scene);
         material.alpha = 0; // Rendre le cube totalement transparent
         this.collisionCube.material = material;
-
-        // Configurer le cube pour qu'il participe à la détection des collisions
         this.collisionCube.checkCollisions = true;
     }
 
     // Méthode pour déplacer l'araignée vers le personnage
     public crawl(target: Character) {
         if (!this.mesh) {
-            return; // Si le mesh n'est pas encore chargé, on arrête la méthode
+            return;
         }
         if (!target.mesh) {
-            return; // Si le personnage n'est pas encore chargé, on arrête également
+            return;
         }
 
-        // Calculer la direction vers le personnage
         const directionToTarget = target.mesh!.position.subtract(this.mesh!.position).normalize();
-
-        // Calculer la distance entre l'araignée et le personnage
         const distanceToTarget = this.mesh!.position.subtract(target.mesh!.position).length();
-
-        // Seuil de distance pour arrêter le mouvement
         const stoppingDistance = 2;
 
         if (distanceToTarget > stoppingDistance) {
@@ -82,7 +72,6 @@ export class Spider extends GameObject {
 
             // Calculer l'angle pour orienter l'araignée vers le personnage
             const angle = Math.atan2(directionToTarget.x, directionToTarget.z); // Correction de l'orientation
-            // Appliquer la rotation sous forme de quaternion pour une meilleure précision
             this.mesh.rotationQuaternion = Quaternion.FromEulerAngles(0, angle, 0);
             if (this.collisionCube) {
                 this.collisionCube.rotationQuaternion = Quaternion.FromEulerAngles(0, angle, 0);
@@ -92,7 +81,6 @@ export class Spider extends GameObject {
             }
         } else {
             // Si l'araignée est suffisamment proche du personnage, elle s'arrête
-            // (elle ne bouge plus et peut éventuellement changer d'état ou autre comportement)
         }
     }
 
@@ -101,7 +89,6 @@ export class Spider extends GameObject {
         this.isHit = true;
         this.hitTimer = this.hitDuration;
 
-        // Si une direction est spécifiée, on l'utilise en annulant le Y
         this.hitDirection = direction ? new Vector3(direction.x, 0, direction.z) : new Vector3(0, 0, -1);
         this.hitDirection.normalize(); // Normaliser la direction (important pour avoir un mouvement constant)
     }

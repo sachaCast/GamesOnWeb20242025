@@ -2,11 +2,17 @@ import { Color3, Scene, Vector3 } from "@babylonjs/core";
 import TestLevel from "./TestLevel";
 import Character from "./character";
 
+
 let levelTest: TestLevel;
 
-function createTestLevel(): Scene {
+
+
+async function createTestLevel(): Promise<Scene> {
     levelTest = new TestLevel();
-    const mainCharacter = new Character(levelTest.scene, new Vector3(0, 0.6, 0), Color3.Red(),levelTest);
+
+    await levelTest.ready;
+    
+    const mainCharacter = new Character(levelTest.scene, new Vector3(-5, 0.6, 0), Color3.Red(),levelTest);
     // Appel de la fonction starting pour démarrer la boucle de rendu
     levelTest.starting(mainCharacter);
 

@@ -2,13 +2,15 @@ import { Scene, Texture, Engine, HemisphericLight, Vector3, MeshBuilder, Standar
 import "@babylonjs/loaders";
 import Character from "./character";
 //import { GameObject } from "./GameObject";
-import { CSG } from "@babylonjs/core/Meshes/csg";
+//import { CSG } from "@babylonjs/core/Meshes/csg";
+import { PhotoDome } from "@babylonjs/core";
 import { BoundingBox } from "@babylonjs/core/Culling/boundingBox";
 import { Spider } from "./Spider";
 import { GameObject } from "./GameObject";
 import { Boss } from "./Boss";
 
 export default class TestLevel {
+    public ready: Promise<void>; 
     public scene: Scene;
     private groundSize: number = 20;
     public ground: any;
@@ -34,34 +36,52 @@ export default class TestLevel {
         this.engine = new Engine(this.canvas, true);
         this.scene = new Scene(this.engine);
         this.donutsFound = 0;
-        this.createLevel();
+        const loadingDiv = document.getElementById("loadingScreen");
+        if (loadingDiv) loadingDiv.style.display = "flex";
+        this.ready = this.createLevel().then(() => {
+            if (loadingDiv) {
+                loadingDiv.classList.add("fade-out");
+                setTimeout(() => loadingDiv.remove(), 1000);
+            }
+        });
     }
 
-    public createLevel(){
-        this.loadBoss();
+    public async createLevel() {
         this.donutsFound = 0;
         this.spiders = [];
         this.donuts = [];
         this.createLighting();
         this.createGround();
-        this.loadLevel();
         //this.scene.collisionsEnabled = true;
         this.createCube();
-        this.loadDonuts();
         this.createBorders();
-        this.loadSpiders();
         this.healthDisplay = document.getElementById("healthDisplay")!;
         this.positionDisplay = document.getElementById("positionDisplay")!;
         this.donutsDisplay = document.getElementById("donutsDisplay")!;
         this.finishDisplay = document.getElementById("finishDisplay")!;
         this.scene.collisionsEnabled = true;
+        await Promise.all([
+            this.loadBoss(),
+            this.loadLevel(),
+            this.loadSpiders(),
+            this.loadDonuts()
+        ]);
     }
 
-    public resetLevel() {
+    public async resetLevel() {
         this.scene.dispose();
         this.scene = new Scene(this.engine);
-        this.createLevel();
+        //this.createLevel();
+        const loadingDiv = document.getElementById("loadingScreen");
+        if (loadingDiv) loadingDiv.style.display = "flex";
+        this.ready = this.createLevel().then(() => {
+            if (loadingDiv) {
+                loadingDiv.classList.add("fade-out");
+                setTimeout(() => loadingDiv.remove(), 1000);
+            }
+        });
     }
+
 
     private createLighting() {
         const light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
@@ -69,83 +89,164 @@ export default class TestLevel {
     }
 
     private createGround() {
-        this.ground = MeshBuilder.CreateGround("ground", { width: this.groundSize*2, height: this.groundSize }, this.scene);
-        //this.ground.position = new Vector3(-39.99, -7.99, 0.18);
-        this.ground.position.x = this.groundSize-30;
+        this.ground = MeshBuilder.CreateGround("ground", { width: 30.38, height: 14.7 }, this.scene);
+        this.ground.position = new Vector3(-14.81, 0, -1.9);
         const groundMaterial = new StandardMaterial("groundMat", this.scene);
-        const groundTexture = new Texture("/textures/scratched-old-rotten-wood_spec_1k.jpg", this.scene);
+        const groundTexture = new Texture("/textures/floor11.jpg", this.scene);
         groundMaterial.diffuseTexture = groundTexture;
         this.ground.material = groundMaterial;
         this.ground.checkCollisions = true;
+
+        // Dimensions
+        const wallThickness = 0.2;
+        const wallHeight = 5;
+
+        // Back Wall (Z- side)
+        const backWall = MeshBuilder.CreateBox("backWall", {
+            width: 30.5, // same as ground width
+            height: wallHeight,
+            depth: wallThickness
+        }, this.scene);
+
+        backWall.position = new Vector3(
+            -14.7,
+            wallHeight / 2, // elevate so it's on top of the ground
+            -1 - (15 / 2) // push to back edge
+        );
+
+        backWall.isVisible = false;
+        backWall.checkCollisions = true;
+        backWall.freezeWorldMatrix();
+
+        // Front Wall (Z+ side)
+        const frontWall = MeshBuilder.CreateBox("frontWall", {
+            width: 30.5,
+            height: wallHeight,
+            depth: wallThickness
+        }, this.scene);
+
+        frontWall.position = new Vector3(
+            -14.7,
+            wallHeight / 2,
+            -1.9 + (15 / 2)
+        );
+
+        frontWall.isVisible = false;
+        frontWall.checkCollisions = true;
+        frontWall.freezeWorldMatrix();
+
     }
 
 
-    /*private loadLevel(): void {
-        SceneLoader.LoadAssetContainer("/", "level1.glb", this.scene, (container) => {
-                const levelRoot = new TransformNode("levelRoot", this.scene);
+    //private loadLevel(): void {
+    public async loadLevel(): Promise<void> {
+        return new Promise((resolve) => {
+            SceneLoader.ImportMesh(null, "/", "level.glb", this.scene, (meshes) => {
+                console.log("Level loaded!", meshes);
 
-                // Parent all imported meshes to a root node
-                container.meshes.forEach(mesh => {
-                    mesh.parent = levelRoot;
-                    mesh.checkCollisions = true;
-                    //mesh.scaling = new Vector3(1, 1, 1);
-                    //mesh.receiveShadows = true;
-                    //mesh.scaling.x = -1;
-                    //mesh.scaling.y = -1;
-                    //mesh.scaling.z = -1;
+                meshes.forEach(mesh => {
+                mesh.checkCollisions = true;
+                mesh.receiveShadows = true;
                 });
+                meshes[0].position = new Vector3(-50.5, -10.50, 0);
+                meshes[0].rotation = new Vector3(0, Tools.ToRadians(-90), 0);
 
-                // Move entire level to desired position
-                levelRoot.position = new Vector3(-47, -10.50, 0);
-                //levelRoot.rotation.y = Math.PI / 2;
-                //levelRoot.rotation = new Vector3(0, Tools.ToRadians(90), 0);
-
-                const invisibleGround = MeshBuilder.CreateGround("invisibleGround", {
-                    width: 100,
-                    height: 100,
+                //Add invisible ground under the model !!!!!!!!! IF WE NEED IT !!!!!!!
+                //11111111111111111111111111111111111111
+                const invisibleGround1 = MeshBuilder.CreateGround("invisibleGround", {
+                    width: 200,
+                    height: 50
                 }, this.scene);
 
-                invisibleGround.position = new Vector3(-47, -10.5, 0);
-                invisibleGround.visibility = 0;
-                invisibleGround.checkCollisions = true;
-                invisibleGround.isPickable = false;
-                invisibleGround.freezeWorldMatrix();
-                container.addAllToScene();
-            }
-        );
-    }*/
-    private loadLevel(): void {
-        SceneLoader.ImportMesh(null, "/", "level.glb", this.scene, (meshes) => {
-            console.log("Level loaded!", meshes);
+                invisibleGround1.position = new Vector3(-51.2, -10.51, 0); // Just below the level
+                invisibleGround1.isVisible = false; // Make it invisible
+                invisibleGround1.checkCollisions = true; // Enable collision
+                const groundMaterial1 = new StandardMaterial("groundMat", this.scene);
+                const groundTexture1 = new Texture("/textures/Metal027_1K-JPG_Color.jpg", this.scene);
+                groundMaterial1.diffuseTexture = groundTexture1;
+                invisibleGround1.material = groundMaterial1;
 
-            meshes.forEach(mesh => {
-              mesh.checkCollisions = true;
-              mesh.receiveShadows = true;
+
+                ///222222222222222222222222222222222222
+                const invisibleGround2 = MeshBuilder.CreateGround("invisibleGround", {
+                    width: 48,
+                    height: 100
+                }, this.scene);
+
+                invisibleGround2.position = new Vector3(-82, -8.3, 0); // Just below the level
+                invisibleGround2.isVisible = false; // Make it invisible
+                invisibleGround2.checkCollisions = true; // Enable collision
+                const groundMaterial2 = new StandardMaterial("groundMat", this.scene);
+                const groundTexture2 = new Texture("/textures/Metal027_1K-JPG_Color.jpg", this.scene);
+                groundMaterial2.diffuseTexture = groundTexture2;
+                invisibleGround2.material = groundMaterial2;
+
+                const wallThickness = 0.5; // thin box wall
+                const wallHeight = 100;      // height of the wall
+                const groundWidth = 65;
+                const groundDepth = 8.8;
+                const groundCenter = new Vector3(-63.2, -10.51, 0);
+
+                // Back wall
+                const backWall = MeshBuilder.CreateBox("backWall", {
+                    width: groundWidth,
+                    height: wallHeight,
+                    depth: wallThickness
+                }, this.scene);
+
+                backWall.position = new Vector3(
+                    groundCenter.x,
+                    groundCenter.y + wallHeight / 2,
+                    groundCenter.z - groundDepth / 2
+                );
+                backWall.isVisible = false;
+                backWall.checkCollisions = true;
+                backWall.freezeWorldMatrix();
+
+                // Front wall
+                const frontWall = MeshBuilder.CreateBox("frontWall", {
+                    width: groundWidth,
+                    height: wallHeight,
+                    depth: wallThickness
+                }, this.scene);
+
+                frontWall.position = new Vector3(
+                    groundCenter.x,
+                    groundCenter.y + wallHeight / 2,
+                    groundCenter.z + groundDepth / 2
+                );
+                frontWall.isVisible = false;
+                frontWall.checkCollisions = true;
+                frontWall.freezeWorldMatrix();
             });
-            meshes[0].position = new Vector3(-50.5, -10.50, 0);
-            meshes[0].rotation = new Vector3(0, Tools.ToRadians(-90), 0);
 
-            //Add invisible ground under the model !!!!!!!!! IF WE NEED IT !!!!!!!
-            const invisibleGround = MeshBuilder.CreateGround("invisibleGround", {
-                width: 200,
-                height: 200
-            }, this.scene);
+            SceneLoader.ImportMesh(null, "/", "bedroomm.glb", this.scene, (meshes) => {
+                console.log("Level loaded!", meshes);
 
-            invisibleGround.position = new Vector3(-50.5, -10.51, 0); // Just below the level
-            invisibleGround.isVisible = false; // Make it invisible
-            invisibleGround.checkCollisions = true; // Enable collision
+                meshes.forEach(mesh => {
+                mesh.checkCollisions = true;
+                mesh.receiveShadows = true;              
+                });
+                meshes[0].position = new Vector3(-4.65, 0, -1.95);
+                meshes[0].rotation = new Vector3(0, Math.PI*2, 0);
+                resolve();
 
+            });
         });
+
     }
 
     private createCube() {
         this.cube = MeshBuilder.CreateBox("pushableCube", { size: 3 }, this.scene);
         this.cube.position = new Vector3(-47, -9, 0.14);
         const cubeMaterial = new StandardMaterial("cubeMat", this.scene);
-        cubeMaterial.diffuseColor = Color3.Blue();
+        const texturePath = "/textures/Metal029_1K-JPG_Color.jpg"; // Adjust path if needed
+        const texture = new Texture(texturePath, this.scene);
+        cubeMaterial.diffuseTexture = texture;
         this.cube.material = cubeMaterial;
         this.cube.checkCollisions = true;
     }
+    
 
     private loadDonuts() {
         const donutPositions = [
@@ -276,6 +377,11 @@ export default class TestLevel {
         camera.inputs.clear();
 
         const keys: Record<string, boolean> = {}; // Store pressed keys
+
+        new PhotoDome("sky", "/textures/Metal027_1K-JPG_Color.jpg", {
+            resolution: 32,
+            size: 1000
+        }, this.scene);
 
         const keyMappings: Record<string, string> = {
             "KeyW": "forward",
@@ -453,86 +559,54 @@ export default class TestLevel {
 
     private createBorders() {
         const wallMaterial = new StandardMaterial("wallMat", this.scene);
-        //wallMaterial.diffuseColor = new Color3(0.6, 0.6, 0.6); // Gray walls
-        const wallTexture = new Texture("/textures/old-lime-plaster_spec_1k.jpg", this.scene);
-        wallMaterial.diffuseTexture = wallTexture;
-
-        // Optional: tile the texture to avoid stretching
-        wallTexture.uScale = 4;
-        wallTexture.vScale = 4;
-
-        const wallHeight = 10;
+        const wallHeight = 9.8; 
         const wallThickness = 0.2;
-        const doorWidth = 4; // 1.5x wider door
-        const doorHeight = 4; // Half the height
-
-        // Keep the existing left & right walls
-        const leftWall = MeshBuilder.CreateBox("leftWall", { width: wallThickness, height: wallHeight, depth: this.groundSize }, this.scene);
-        leftWall.position.x = -this.groundSize * 1.5;
-        leftWall.position.y = wallHeight / 2;
+        const groundSize = this.groundSize ?? 15; // default fallback if undefined
+        
+        // LEFT WALL (No Door, Goes Under Ground)
+        const leftWall = MeshBuilder.CreateBox("leftWall", {
+            width: wallThickness,
+            height: wallHeight,
+            depth: groundSize
+        }, this.scene);
+        
+        // Drop wall underground by aligning bottom to ground level
+        leftWall.position.x = -groundSize * 1.5;
+        leftWall.position.y = wallHeight / 2 - 10; // 10 units below ground
         leftWall.material = wallMaterial;
         leftWall.checkCollisions = true;
-
-        // **Create Doorway (A Box that Cuts Through the Wall)**
-        const doorMesh = MeshBuilder.CreateBox("door", { width: wallThickness + 0.1, height: doorHeight, depth: doorWidth }, this.scene);
-        doorMesh.position.x = leftWall.position.x; // Align with left wall
-        doorMesh.position.y = doorHeight / 2; // Center door height-wise
-        doorMesh.position.z = 0; // Place in the middle of the wall
-        doorMesh.isVisible = false; // Hide the cutter box
-
-        // **Perform Boolean Subtraction to Create the Doorway**
-        const leftWallCSG = CSG.FromMesh(leftWall);
-        const doorCSG = CSG.FromMesh(doorMesh);
-        const finalWallCSG = leftWallCSG.subtract(doorCSG); // Subtract door from wall
-
-        // **Create the Final Left Wall with a Door Opening**
-        const leftWallWithDoor = finalWallCSG.toMesh("leftWallWithDoor", wallMaterial, this.scene);
-        leftWallWithDoor.checkCollisions = true;
-
-        // **Dispose of Temporary Meshes**
-        leftWall.dispose();
-        doorMesh.dispose();
-
-        const rightWall = MeshBuilder.CreateBox("rightWall", { width: wallThickness, height: wallHeight, depth: this.groundSize }, this.scene);
-        rightWall.position.x = this.groundSize * 0.5;
-        rightWall.position.y = wallHeight / 2;
-        rightWall.material = wallMaterial;
-        rightWall.checkCollisions = true;
-
-        // **Fix the back wall size & position**
-        const backWallWidth = rightWall.position.x - leftWall.position.x; // Match exact distance
-        const backWall = MeshBuilder.CreateBox("backWall", { width: backWallWidth, height: wallHeight, depth: wallThickness }, this.scene);
-        backWall.position.x = (rightWall.position.x + leftWall.position.x) / 2; // Center between walls
-        backWall.position.z = -this.groundSize / 2;
-        backWall.position.y = wallHeight / 2;
-        backWall.material = wallMaterial;
-        backWall.checkCollisions = true;
-
+        leftWall.isVisible = false; 
+        leftWall.freezeWorldMatrix();
+        
         // **Create Stairs Descending from the Door**
-        this.createStairs(leftWallWithDoor.position.x - 0.5, doorWidth);
+        this.createStairs();
     }
 
 
-    private createStairs(xPos: number, width: number) {
+    private createStairs(xPos: number = -30.5, width: number = 4) {
         const stairMaterial = new StandardMaterial("stairMat", this.scene);
-        stairMaterial.diffuseColor = new Color3(0.8, 0.8, 0.8); // Light gray
-
+        const woodTexture = new Texture("/textures/Metal029_1K-JPG_Roughness.jpg", this.scene);
+        stairMaterial.diffuseTexture = woodTexture;
+    
         const stairDepth = width;
         const stairWidth = 1; // Thickness of each step
         const stairHeight = 1;
         const stairCount = 10; // Number of steps
-
+    
         for (let i = 0; i < stairCount; i++) {
-            const step = MeshBuilder.CreateBox(`stair${i}`, { width: stairWidth, height: stairHeight, depth: stairDepth }, this.scene);
+            const step = MeshBuilder.CreateBox(`stair${i}`, {
+                width: stairWidth,
+                height: stairHeight,
+                depth: stairDepth
+            }, this.scene);
+    
             step.position.x = xPos - stairWidth * i; // Move steps further from the door
             step.position.y = stairHeight * (stairCount - i - 10.5); // Lower each step
             step.position.z = 0; // Center with door
+    
             step.material = stairMaterial;
             step.checkCollisions = true;
         }
-
     }
-
-
 
 }

@@ -1,5 +1,11 @@
 # 🎮 GamesOnWeb2024–2025 — *Lisani & Nisali*
 
+## 👥 About the Team
+
+- Mikita Sidarenka
+- Sacha Castillejos
+- Yelyzaveta Ploskonos
+
 ## Link
 Play the game at [https://sachacast.github.io/GamesOnWeb20242025/](https://sachacast.github.io/GamesOnWeb20242025/)
 

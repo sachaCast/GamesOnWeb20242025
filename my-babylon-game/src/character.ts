@@ -1,12 +1,10 @@
-import { Scene, Vector3, MeshBuilder, StandardMaterial, Color3, Mesh, Ray } from "@babylonjs/core";
-//import { GameObject } from "./GameObject";
+import { Scene, Vector3, MeshBuilder, StandardMaterial, Color3, Mesh, Ray, SceneLoader, AbstractMesh, TransformNode, AnimationGroup } from "@babylonjs/core";
 import TestLevel from "./TestLevel";
 
 export default class Character {
-    public mesh: Mesh;
+    public mesh: TransformNode; // Root node for the character model
     private scene: Scene;
     public speed: number = 0.1;
-    //public jumpStrength: number = 0.3;
     public jumpStrength: number = 0;
     public defaultJumpStrength: number = 0.3;
     public gravity: number = -0.005;
@@ -19,110 +17,236 @@ export default class Character {
     private isHit: boolean = false;
     private hitDirection: Vector3 = Vector3.Zero();
     private hitTimer: number = 0;
-    private readonly hitDuration: number = 10; // Durée du recul en frames
-    private readonly hitBounceForce: number = 0.3; // Force du recul
+    private readonly hitDuration: number = 10; // Duration of knockback in frames
+    private readonly hitBounceForce: number = 0.3; // Knockback force
     public maxHP: number = 10;
     public currentHP: number = 10;
     public isAlive: boolean = true;
     private initialPosition: Vector3;
     private level: TestLevel;
+    public collisionMesh: Mesh; // Invisible mesh for collisions
+    private animationGroups: { [key: string]: AnimationGroup } = {};
+    private currentAnimation: AnimationGroup | null = null;
+    private currentActionState: string = "staying";
+    private isPlayingNonLooping: boolean = false;
 
-    constructor(scene: Scene, position: Vector3, color: Color3,level: TestLevel) {
+    constructor(scene: Scene, position: Vector3, level: TestLevel) {
         this.level = level;
         this.scene = scene;
         this.initialPosition = position.clone();
-        // Create character (sphere)
-        this.mesh = MeshBuilder.CreateSphere("character", { diameter: 1.2 }, scene);
-        this.mesh.position = position;
-        this.mesh.checkCollisions = true;
-        this.mesh.showBoundingBox = true;
 
-        // Character material
-        const material = new StandardMaterial("characterMat", scene);
-        material.diffuseColor = color;
-        this.mesh.material = material;
-        this.createAattackCUbe();
+        // Create an invisible collision mesh (box) for simplified collisions
+        this.collisionMesh = MeshBuilder.CreateBox("characterCollision", { size: 1.2 }, scene);
+        this.collisionMesh.position = position;
+        this.collisionMesh.isVisible = false;
+        this.collisionMesh.checkCollisions = true;
+        this.collisionMesh.showBoundingBox = true;
+
+        // Initialize a TransformNode as the root for the character model
+        this.mesh = new TransformNode("characterRoot", scene);
+        this.mesh.position = position;
+
+        // Load the .glb model
+        this.loadCharacterModel(position);
+
+        this.createAttackCube();
     }
 
-    // Movement method
+    private async loadCharacterModel(position: Vector3) {
+        try {
+            const result = await SceneLoader.ImportMeshAsync("", "/", "character.glb", this.scene);
+            const rootMesh = result.meshes[0] as AbstractMesh;
+
+            rootMesh.parent = this.mesh;
+            rootMesh.position = Vector3.Zero();
+            rootMesh.scaling = new Vector3(1, 1, 1);
+            rootMesh.rotation = new Vector3(0, Math.PI * 1.5, 0);
+
+            this.collisionMesh.ellipsoid = new Vector3(0.6, 1.2, 0.6);
+            this.collisionMesh.ellipsoidOffset = new Vector3(0, 0.6, 0);
+
+            result.animationGroups.forEach((group) => {
+                this.animationGroups[group.name.toLowerCase()] = group;
+                console.log(`Animation ${group.name}: ${group.to - group.from} frames`);
+            });
+
+            this.animationGroups["jump"].speedRatio = 2.7; // Slow down if too fast
+            this.animationGroups["walking"].speedRatio = 1.3; // Adjust for natural walking pace
+            //this.animationGroups["crouch"].speedRatio = 1.0;  // Adjust for natural crouching
+
+            // Debug: Log available animations
+            console.log("Available animations:", Object.keys(this.animationGroups));
+
+            // Set staying as default animation
+            this.setAnimation("staying");
+            this.currentActionState = "staying";
+        } catch (error) {
+            console.error("Failed to load character model:", error);
+            const fallbackMesh = MeshBuilder.CreateSphere("characterFallback", { diameter: 1.2 }, this.scene);
+            fallbackMesh.parent = this.mesh;
+            const material = new StandardMaterial("fallbackMat", this.scene);
+            material.diffuseColor = Color3.White();
+            fallbackMesh.material = material;
+        }
+    }
+
+    private setAnimation(animationName: string, loop: boolean = true) {
+        //const currentTime = performance.now();
+
+        if (this.currentAnimation === this.animationGroups[animationName.toLowerCase()] && this.currentAnimation.isPlaying) {
+            return;
+        }
+
+        if (this.currentAnimation) {
+            this.currentAnimation.stop();
+        }
+
+        const animation = this.animationGroups[animationName.toLowerCase()];
+        if (animation) {
+            console.log(`Playing animation: ${animationName}, Loop: ${loop}`);
+            animation.play(loop);
+            this.currentAnimation = animation;
+            this.isPlayingNonLooping = !loop;
+            this.currentActionState = animationName.toLowerCase();
+            //this.lastAnimationStartTime = currentTime;
+
+            // Add observer for non-looping animations to transition back to staying
+            if (!loop) {
+                animation.onAnimationEndObservable.addOnce(() => {
+                    console.log(`Animation ${animationName} ended`);
+                    this.isPlayingNonLooping = false;
+                    if (this.currentActionState === animationName.toLowerCase()) {
+                        this.setAnimation("staying");
+                        this.currentActionState = "staying";
+                    }
+                });
+            }
+        } else {
+            console.warn(`Animation ${animationName} not found`);
+            this.setAnimation("staying"); // Fallback to staying
+            this.currentActionState = "staying";
+        }
+    }
+
     public move(direction: Vector3, _boundary: number) {
-        if (this.isCrawling) {
-            direction.scaleInPlace(0.3); // Reduce speed while crawling
-            //this.mesh.position.y -= 0.1;
+        if (this.isPlayingNonLooping) {
+            // Don't change animation during non-looping animations (e.g., jump, puch)
+            this.collisionMesh.moveWithCollisions(direction.scale(this.speed));
+            this.mesh.position = this.collisionMesh.position.clone();
+            if (this.attackCube) {
+                this.attackCube.position = this.mesh.position.clone();
+            }
+            this.checkForStepDown();
+            return;
         }
-        this.mesh.moveWithCollisions(direction.scale(this.speed));
-        // Make the attackCube move with the character
+
+        if (direction.length() > 0 && this.currentActionState !== "walking") {
+            this.setAnimation("walking", false); // Play walking once
+            this.currentActionState = "walking";
+        } else if (direction.length() === 0 && this.currentActionState !== "staying" && !this.isPlayingNonLooping) {
+            this.setAnimation("staying");
+            this.currentActionState = "staying";
+        }
+
+        // Turning the character based on movement direction
+        if (direction.x !== 0 || direction.z !== 0) {
+            const angle = Math.atan2(-direction.x, -direction.z);
+            this.mesh.rotation.y = angle + Math.PI * 1.5; // Adjust rotation
+        }
+
+        this.collisionMesh.moveWithCollisions(direction.scale(this.speed));
+        this.mesh.position = this.collisionMesh.position.clone();
         if (this.attackCube) {
-            this.attackCube.position = this.mesh.position.clone(); // Sync position of the cube with the character
+            this.attackCube.position = this.mesh.position.clone();
         }
-        // Check for step-down when moving
         this.checkForStepDown();
     }
 
     // Jump method
     public jump() {
-        if (this.canJump) {
+        if (this.canJump && !this.isPlayingNonLooping) {
+            this.setAnimation("jump", false); // Start jump animation immediately
+            this.currentActionState = "jump";
             this.velocityY = this.defaultJumpStrength;
             this.isJumping = true;
             this.canJump = false;
-            setTimeout(() => this.canJump = true, 500); // Delay before the next jump
+            setTimeout(() => (this.canJump = true), 500); // Reset jump ability after a delay
+            console.log("Jump initiated, animation started");
         }
     }
 
     // Apply gravity
     public applyGravity() {
         if (this.isJumping) {
-            this.mesh.moveWithCollisions(new Vector3(0, this.velocityY, 0));
+            this.collisionMesh.moveWithCollisions(new Vector3(0, this.velocityY, 0));
+            this.mesh.position = this.collisionMesh.position.clone(); // Sync model
             this.velocityY += this.gravity;
-
+            if (this.attackCube) {
+                this.attackCube.position = this.mesh.position.clone();
+            }
+            // Reset to staying after jump when grounded
+            if (this.isGrounded() && !this.isPlayingNonLooping) {
+                this.isJumping = false;
+                if (this.currentActionState !== "staying") {
+                    this.setAnimation("staying");
+                    this.currentActionState = "staying";
+                }
+            }
         }
     }
 
     // Check if the character is on the ground
     public isGrounded(): boolean {
-        const ray = new Ray(this.mesh.position, new Vector3(0, -1, 0), 999999);
+        const ray = new Ray(this.collisionMesh.position, new Vector3(0, -1, 0), 999999);
         const hit = this.scene.pickWithRay(ray, (mesh) => {
-            return mesh.isPickable && mesh.checkCollisions && mesh !== this.mesh;
+            return mesh.isPickable && mesh.checkCollisions && mesh !== this.collisionMesh;
         });
         return hit !== null && hit.pickedMesh !== null;
     }
 
-    // New method: checks if the character should move down (for steps)
+    // Check for step-down when moving
     private checkForStepDown() {
-        const ray = new Ray(this.mesh.position, new Vector3(0, -1, 0), 1.5);
+        const ray = new Ray(this.collisionMesh.position, new Vector3(0, -1, 0), 1.5);
         const hit = this.scene.pickWithRay(ray);
 
-        if (hit && hit.pickedMesh) {
-            let stepHeight = hit.pickedPoint ? hit.pickedPoint.y : 0;
-            let heightDifference = this.mesh.position.y - stepHeight;
+        if (hit && hit.pickedPoint) {
+            let stepHeight = hit.pickedPoint.y;
+            let heightDifference = this.collisionMesh.position.y - stepHeight;
 
-            // If the height difference is greater than 0.2, it means there's a step, and the character should move down
             if (heightDifference > 0.2) {
-                this.mesh.moveWithCollisions(new Vector3(0, -0.3, 0)); // Smooth downward movement
+                this.collisionMesh.moveWithCollisions(new Vector3(0, -0.3, 0));
+                this.mesh.position = this.collisionMesh.position.clone();
+                if (this.attackCube) {
+                    this.attackCube.position = this.mesh.position.clone();
+                }
             }
         }
     }
 
     // Crawling method
     public crawl(start: boolean) {
-        this.isCrawling = start;
-        if (start) {
-            this.mesh.scaling.y = 0.5;
+        if (this.isCrawling !== start) {
+            //this.isCrawling = start;
+            if (start) {
+                //this.mesh.scaling.y = 0.5;
+                this.collisionMesh.scaling.y = 0.5;
+                this.collisionMesh.ellipsoid = new Vector3(0.6, 0.6, 0.6);
+                this.collisionMesh.ellipsoidOffset = new Vector3(0, 0.3, 0);
+                if (this.currentActionState !== "crouch") {
+                    this.setAnimation("crouch", false); // Play crouch once
+                    this.currentActionState = "crouch";
+                }
+            } else {
+                this.mesh.scaling.y = 1;
+                this.collisionMesh.scaling.y = 1;
+                this.collisionMesh.ellipsoid = new Vector3(0.6, 1.2, 0.6);
+                this.collisionMesh.ellipsoidOffset = new Vector3(0, 0.6, 0);
+                if (this.currentActionState !== "staying" && !this.isPlayingNonLooping) {
+                    this.setAnimation("staying");
+                    this.currentActionState = "staying";
+                }
+            }
         }
-        if (!start) {
-            this.mesh.scaling.y = 1;
-            this.jumpStrength = this.defaultJumpStrength;
-        }
-        /*if (start) {
-            this.mesh.scaling.y = 0.5;
-            this.mesh.ellipsoid = new Vector3(0.5, 0.5, 0.5); // половина высоты
-            this.mesh.ellipsoidOffset = new Vector3(0, 0.25, 0); // ниже, т.к. персонаж "пригнулся"
-        } else {
-            this.mesh.scaling.y = 1;
-            this.mesh.ellipsoid = new Vector3(0.5, 1, 0.5);
-            this.mesh.ellipsoidOffset = new Vector3(0, 0.5, 0);
-        }*/
-
     }
 
     // Interaction with objects (grabbing)
@@ -131,36 +255,36 @@ export default class Character {
     }
 
     // Attack method: creates a red transparent cube around the character
-    public createAattackCUbe() {
-        // Create the cube around the character
+    public createAttackCube() {
         this.attackCube = MeshBuilder.CreateBox("attackCube", { size: 2.5 }, this.scene);
         this.attackCube.position = this.mesh.position.clone();
-
-        // Create a material for the cube
         const attackMaterial = new StandardMaterial("attackMaterial", this.scene);
         attackMaterial.diffuseColor = Color3.Red();
         attackMaterial.alpha = 0;
         this.attackCube.material = attackMaterial;
     }
 
-    public attack(isAttacking: boolean){
+    public attack(isAttacking: boolean) {
         if (this.attackCube && this.attackCube.material) {
-            if(isAttacking){
+            if (isAttacking) {
+                this.setAnimation("puch", false); // Fixed typo from "puch" to "puch", play once
+                this.currentActionState = "puch";
                 this.attackCube.material.alpha = 0.2;
-            }
-            else{
+            } else {
+                if (this.currentActionState !== "staying" && !this.isPlayingNonLooping) {
+                    this.setAnimation("staying");
+                    this.currentActionState = "staying";
+                }
                 this.attackCube.material.alpha = 0;
             }
         }
-
     }
 
     public getHit(direction: Vector3) {
         if (!this.isAlive) return;
-        this.currentHP -= 1; // Perd 1 HP
+        this.currentHP -= 1;
         console.log(`Player hit! HP remaining: ${this.currentHP}/${this.maxHP}`);
 
-        // Appliquer le recul
         this.isHit = true;
         this.hitTimer = this.hitDuration;
         this.hitDirection = new Vector3(direction.x, 0, direction.z).normalize();
@@ -173,11 +297,10 @@ export default class Character {
     public die() {
         this.isAlive = false;
         console.log("Player died!");
-        // Désactiver le mesh temporairement
         this.mesh.setEnabled(false);
+        this.collisionMesh.setEnabled(false);
         if (this.attackCube) this.attackCube.setEnabled(false);
 
-        // Respawn après un délai
         setTimeout(() => {
             this.level.resetLevel();
             this.respawn();
@@ -186,21 +309,18 @@ export default class Character {
 
     public respawn() {
         this.level.resetLevel();
-        const newCharacter = new Character(this.level.scene, this.initialPosition, Color3.Red(), this.level);
+        const newCharacter = new Character(this.level.scene, this.initialPosition, this.level);
         this.level.starting(newCharacter);
     }
 
     public updateHit() {
         if (this.isHit && this.hitTimer > 0) {
-            // Appliquer le recul seulement sur X/Z
-            this.mesh.position.x += this.hitDirection.x * this.hitBounceForce;
-            this.mesh.position.z += this.hitDirection.z * this.hitBounceForce;
-
+            this.collisionMesh.position.x += this.hitDirection.x * this.hitBounceForce;
+            this.collisionMesh.position.z += this.hitDirection.z * this.hitBounceForce;
+            this.mesh.position = this.collisionMesh.position.clone();
             if (this.attackCube) {
-                this.attackCube.position.x = this.mesh.position.x;
-                this.attackCube.position.z = this.mesh.position.z;
+                this.attackCube.position = this.mesh.position.clone();
             }
-
             this.hitTimer--;
         } else {
             this.isHit = false;

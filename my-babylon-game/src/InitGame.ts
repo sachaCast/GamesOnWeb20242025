@@ -12,7 +12,7 @@ async function createTestLevel(): Promise<Scene> {
 
     await levelTest.ready;
     
-    const mainCharacter = new Character(levelTest.scene, new Vector3(-5, 0.6, 0), Color3.Red(),levelTest);
+    const mainCharacter = new Character(levelTest.scene, new Vector3(-5, 0.6, 0), levelTest);
     // Appel de la fonction starting pour démarrer la boucle de rendu
     levelTest.starting(mainCharacter);
 

@@ -1,5 +1,6 @@
 import { Scene, Vector3, MeshBuilder, StandardMaterial, Color3, Mesh, Ray, SceneLoader, AbstractMesh, TransformNode, AnimationGroup } from "@babylonjs/core";
 import TestLevel from "./TestLevel";
+import SecondLevel from "./SecondLevel";
 
 export default class Character {
     public mesh: TransformNode; // Root node for the character model
@@ -23,14 +24,14 @@ export default class Character {
     public currentHP: number = 10;
     public isAlive: boolean = true;
     private initialPosition: Vector3;
-    private level: TestLevel;
+    private level: TestLevel | SecondLevel;
     public collisionMesh: Mesh; // Invisible mesh for collisions
     private animationGroups: { [key: string]: AnimationGroup } = {};
     private currentAnimation: AnimationGroup | null = null;
     private currentActionState: string = "staying";
     private isPlayingNonLooping: boolean = false;
 
-    constructor(scene: Scene, position: Vector3, level: TestLevel) {
+    constructor(scene: Scene, position: Vector3, level: TestLevel | SecondLevel) {
         this.level = level;
         this.scene = scene;
         this.initialPosition = position.clone();

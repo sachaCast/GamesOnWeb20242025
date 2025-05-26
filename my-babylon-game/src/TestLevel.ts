@@ -10,7 +10,7 @@ import { GameObject } from "./GameObject";
 import { Boss } from "./Boss";
 
 export default class TestLevel {
-    public ready: Promise<void>; 
+    public ready: Promise<void>;
     public scene: Scene;
     private groundSize: number = 20;
     public ground: any;
@@ -225,7 +225,7 @@ export default class TestLevel {
 
                 meshes.forEach(mesh => {
                 mesh.checkCollisions = true;
-                mesh.receiveShadows = true;              
+                mesh.receiveShadows = true;
                 });
                 meshes[0].position = new Vector3(-4.65, 0, -1.95);
                 meshes[0].rotation = new Vector3(0, Math.PI*2, 0);
@@ -246,7 +246,7 @@ export default class TestLevel {
         this.cube.material = cubeMaterial;
         this.cube.checkCollisions = true;
     }
-    
+
 
     private loadDonuts() {
         const donutPositions = [
@@ -437,10 +437,10 @@ export default class TestLevel {
                                 this.boss.mesh?.dispose();
                                 this.boss.collisionCube?.dispose();
                                 this.boss.attackCube?.dispose;
-                                if(this.finishDisplay!=null) this.finishDisplay.textContent = `LEVEL FINISHED`;
+                                /*if(this.finishDisplay!=null) this.finishDisplay.textContent = `LEVEL FINISHED`;
                                 setTimeout(() => {
                                     this.levelFinished = true;
-                                }, 1000);
+                                }, 1000);*/
                             }
                         }
                     }
@@ -528,7 +528,7 @@ export default class TestLevel {
                     spider.update(); // Ajoutez cette ligne
                 });
             }
-            this.checkBoundaries(mainCharacter.collisionMesh);
+            //this.checkBoundaries(mainCharacter.collisionMesh);
             this.checkCollisionWithSpiders(mainCharacter,bounceForce);
 
             if(this.boss!=null && this.boss.hp>0) this.boss?.update();
@@ -554,25 +554,25 @@ export default class TestLevel {
 
     private createBorders() {
         const wallMaterial = new StandardMaterial("wallMat", this.scene);
-        const wallHeight = 9.8; 
+        const wallHeight = 9.8;
         const wallThickness = 0.2;
         const groundSize = this.groundSize ?? 15; // default fallback if undefined
-        
+
         // LEFT WALL (No Door, Goes Under Ground)
         const leftWall = MeshBuilder.CreateBox("leftWall", {
             width: wallThickness,
             height: wallHeight,
             depth: groundSize
         }, this.scene);
-        
+
         // Drop wall underground by aligning bottom to ground level
         leftWall.position.x = -groundSize * 1.5;
         leftWall.position.y = wallHeight / 2 - 10; // 10 units below ground
         leftWall.material = wallMaterial;
         leftWall.checkCollisions = true;
-        leftWall.isVisible = false; 
+        leftWall.isVisible = false;
         leftWall.freezeWorldMatrix();
-        
+
         // **Create Stairs Descending from the Door**
         this.createStairs();
     }
@@ -582,23 +582,23 @@ export default class TestLevel {
         const stairMaterial = new StandardMaterial("stairMat", this.scene);
         const woodTexture = new Texture("/textures/Metal029_1K-JPG_Roughness.jpg", this.scene);
         stairMaterial.diffuseTexture = woodTexture;
-    
+
         const stairDepth = width;
         const stairWidth = 1; // Thickness of each step
         const stairHeight = 1;
         const stairCount = 10; // Number of steps
-    
+
         for (let i = 0; i < stairCount; i++) {
             const step = MeshBuilder.CreateBox(`stair${i}`, {
                 width: stairWidth,
                 height: stairHeight,
                 depth: stairDepth
             }, this.scene);
-    
+
             step.position.x = xPos - stairWidth * i; // Move steps further from the door
             step.position.y = stairHeight * (stairCount - i - 10.5); // Lower each step
             step.position.z = 0; // Center with door
-    
+
             step.material = stairMaterial;
             step.checkCollisions = true;
         }

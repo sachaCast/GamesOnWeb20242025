@@ -17,6 +17,7 @@ import {
     Scene as BabylonScene, // Ensure this is imported for fog mode constants
     AnimationGroup,
     TransformNode,
+    Mesh,
 } from "@babylonjs/core";
 
 import Character from "./character";
@@ -24,6 +25,7 @@ import { Boss } from "./Boss";
 import { GameObject } from "./GameObject";
 
 export default class SecondLevel {
+    private followCamera: FollowCamera | undefined;
     public scene: Scene;
     public engine: Engine;
     public canvas: HTMLCanvasElement;
@@ -45,7 +47,14 @@ export default class SecondLevel {
     private fishSwimSpeed = 0.5;
     private fishTime = 0;
     public boundary: number = this.groundSize / 2 - 1;
-
+    private air: number = 100;
+    private maxAir: number = 100;
+    private airDisplay: HTMLElement | undefined;
+    private airDrainRate: number = 1;
+    private airDrainInterval: number = 500;
+    private shark!: TransformNode;
+    private sharkActive: boolean = false;
+    private door: Mesh | null = null;
 
     constructor() {
         this.canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
@@ -53,6 +62,7 @@ export default class SecondLevel {
         this.scene = new Scene(this.engine);
         this.donutsFound = 0;
         const loadingDiv = document.getElementById("loadingScreen");
+        this.setupCamera();
         if (loadingDiv) loadingDiv.style.display = "flex";
         this.ready = this.createLevel().then(() => {
             if (loadingDiv) {
@@ -70,10 +80,21 @@ export default class SecondLevel {
         this.positionDisplay = document.getElementById("positionDisplay")!;
         this.donutsDisplay = document.getElementById("donutsDisplay")!;
         this.finishDisplay = document.getElementById("finishDisplay")!;
+        this.airDisplay = document.getElementById("airDisplay")!;
+        this.air = this.maxAir;
+        this.door = MeshBuilder.CreateBox("sharkCube", { size: 10 }, this.scene);
+        this.door.position = new Vector3(-128, 0.60, -4);
+        this.door.checkCollisions = true;
+
+        const cubeMaterial = new StandardMaterial("cubeMat", this.scene);
+        cubeMaterial.diffuseColor = new Color3(1, 0, 0); // rouge
+        this.door.material = cubeMaterial;
 
         await Promise.all([
             this.loadLevel(),
-            this.loadFishes(), 
+            this.loadFishes(),
+            this.loadShark(),
+            this.loadKeys()
         ]);
         this.createUnderwaterEffect(); //  Underwater visuals
     }
@@ -103,6 +124,11 @@ export default class SecondLevel {
                 setTimeout(() => loadingDiv.remove(), 1000);
             }
         });
+        this.air = this.maxAir;
+        if (this.airDisplay) {`
+            this.airDisplay.textContent = Air: ${this.air}%`;
+        }
+
     }
 
     public async loadLevel(): Promise<void> {
@@ -182,9 +208,9 @@ export default class SecondLevel {
                 resolve();
             });
         });
-        
+
     }
-    
+
     private async loadFishes(): Promise<void> {
         const fishPositions: Vector3[] = [
             new Vector3(-71.54, 25.14, 4.85),
@@ -234,21 +260,125 @@ export default class SecondLevel {
         console.log(`${fishPositions.length} fishes loaded at fixed positions.`);
     }
 
+    private async loadShark(): Promise<void> {
+        const sharkPath = "/";
+        const sharkFile = "shark.glb";
 
+        const result = await SceneLoader.ImportMeshAsync("", sharkPath, sharkFile, this.scene);
+
+        const root = result.meshes[0] as TransformNode;
+        this.shark = root;
+
+        this.shark.scaling = new Vector3(2, 2, 2);
+        this.shark.position = new Vector3(-107, 1, 0);
+        this.shark.rotation = new Vector3(0, Math.PI, 0); // Pour le faire regarder vers la droite
+
+        result.meshes.forEach(mesh => {
+            mesh.isVisible = true;
+            mesh.checkCollisions = true;
+        });
+
+        result.animationGroups.forEach(group => group.start(true)); // boucle animation
+    }
+
+    private async loadKeys(): Promise<void> {
+        const donutPositions = [
+            new Vector3(-110, 19, -6),
+            new Vector3(-93, 8, -8),
+            new Vector3(-94, 2, 5.5),
+            new Vector3(-110, 4, 1.5),
+            new Vector3(-122, 21, 1.5),
+        ];
+
+        donutPositions.forEach((pos, index) => {
+            const donut = new GameObject(this.scene, "/", "donut.glb", pos, new Vector3(5, 5, 5));
+            this.donuts.push(donut);
+        });
+
+        console.log("Donuts are being loaded...");
+    }
+
+
+    private setupCamera(): void {
+        this.followCamera = new FollowCamera("FollowCam", new Vector3(0, 5, -10), this.scene);
+        this.followCamera.radius = 10;
+        this.followCamera.heightOffset = 5;
+        this.followCamera.rotationOffset = 0;
+        this.followCamera.inputs.clear();
+
+        this.scene.activeCamera = this.followCamera;
+        //this.followCamera.attachControl(this.canvas, true);
+    }
+
+    private checkCollisionWithShark(mainCharacter: Character) {
+        if (!mainCharacter.isAlive) return;
+
+        if (this.shark) {
+            const distance = Vector3.Distance(mainCharacter.collisionMesh.position, this.shark.position);
+            if (distance < 2) {
+                const direction = mainCharacter.collisionMesh.position.subtract(this.shark.position).normalize();
+                mainCharacter.getHit(direction);
+            }
+        }
+    }
+
+        private checkCollisionWithDonuts(mainCharacter: Character) {
+            const donutsToCheck = [...this.donuts];
+
+            donutsToCheck.forEach((donut, index) => {
+                if (donut.mesh) {
+                    const distance = Vector3.Distance(mainCharacter.collisionMesh.position, donut.mesh.position);
+
+                    if (distance < 1) {
+                        donut.mesh.dispose();
+
+                        // Supprime le donut du tableau
+                        const originalIndex = this.donuts.indexOf(donut);
+                        if (originalIndex !== -1) {
+                            this.donuts.splice(originalIndex, 1);
+                        }
+
+                        this.donutsFound += 1;
+                        console.log("Donut collected! Total:", this.donutsFound);
+
+                        // Met à jour l'affichage immédiatement
+                        if (this.donutsDisplay != null) {
+                            this.donutsDisplay.textContent = `donuts: ${this.donutsFound}/${this.donuts.length + this.donutsFound}`;
+                        }
+                    }
+                }
+            });
+        }
 
     public starting(character: Character): void {
         this.mainCharacter = character;
         this.mainCharacter.setSwimmingMode(true);
 
+        if (this.followCamera) {
+            this.followCamera.lockedTarget = this.mainCharacter.collisionMesh;
+        }
+
+        setInterval(() => {
+            if (!this.mainCharacter.isAlive || this.levelFinished) return;
+
+            this.air -= this.airDrainRate;
+            if (this.air < 0) this.air = 0;
+
+            if (this.airDisplay) {
+                this.airDisplay.textContent = `Air: ${Math.floor(this.air)}%`;
+            }
+
+            if (this.air <= 0) {
+                this.mainCharacter.currentHP = 0;
+                this.mainCharacter.isAlive = false;
+                this.mainCharacter.die();
+                console.log("Le personnage s'est noyé !");
+            }
+        }, this.airDrainInterval);
+
         //const bounceForce = 0.5;
         //let isInSecondLevel = true; // only allow swimming here
 
-        const camera = new FollowCamera("FollowCam", new Vector3(0, 5, -10), this.scene);
-        camera.lockedTarget = this.mainCharacter.collisionMesh;
-        camera.radius = 10;
-        camera.heightOffset = 5;
-        camera.rotationOffset = 0;
-        camera.inputs.clear();
 
         const keys: Record<string, boolean> = {};
 
@@ -311,14 +441,21 @@ export default class SecondLevel {
             }
         };
 
-        
+
         this.engine.runRenderLoop(() => {
             if (this.healthDisplay != null) this.healthDisplay.textContent = `HP: ${this.mainCharacter.currentHP}/${this.mainCharacter.maxHP}`;
-            if (this.donutsDisplay != null) this.donutsDisplay.textContent = `donuts: ${this.donutsFound}/5`;
+            if (this.donutsDisplay != null) this.donutsDisplay.textContent = `Donuts to open the red door: ${this.donutsFound}/5`;
             const pos = this.mainCharacter.collisionMesh.position;
             if (this.positionDisplay != null) this.positionDisplay.textContent = `Position: (x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)})`;
-
+            if(this.finishDisplay!=null && this.mainCharacter.collisionMesh.position.x>-162 && this.donutsFound!=5) this.finishDisplay.textContent = ``;
+            if(this.finishDisplay!=null && this.mainCharacter.collisionMesh.position.x<=-162 && this.donutsFound==5) {
+                this.finishDisplay.textContent = `COMING SOON...`;
+                setTimeout(() => {
+                    this.levelFinished = true;
+                }, 1000);
+            }
             if (!this.mainCharacter.isAlive || this.levelFinished) return;
+            if(this.donutsFound==5) this.door?.dispose();
 
             let moveDirection = new Vector3(0, 0, 0);
             if (keys["forward"]) moveDirection.z -= 1;
@@ -337,14 +474,33 @@ export default class SecondLevel {
                 // Apply gravity only when not swimming
                 this.mainCharacter.applyGravity();
             }*/
+            this.checkCollisionWithDonuts(this.mainCharacter);
+            this.mainCharacter.applyGravity();
+            this.mainCharacter.applyGravity();
 
-            this.mainCharacter.applyGravity();
-            this.mainCharacter.applyGravity();
+            // Activer le requin quand le personnage approche
+            if (!this.sharkActive && this.mainCharacter.collisionMesh.position.x <= -97) {
+                this.sharkActive = true;
+                console.log("Le requin est activé !");
+            }
+
+            // Si actif, fait le bouger vers le personnage
+            if (this.sharkActive && this.shark && this.mainCharacter.isAlive) {
+                const sharkPos = this.shark.position;
+                const playerPos = this.mainCharacter.collisionMesh.position;
+
+                const direction = playerPos.subtract(sharkPos).normalize().scale(0.05); // vitesse
+                this.shark.position.addInPlace(direction);
+
+                // Faire tourner le requin vers le joueur
+                const dx = playerPos.x - sharkPos.x;
+                const dz = playerPos.z - sharkPos.z;
+                this.shark.rotation.y = Math.atan2(dx, dz);
+            }
+
+            this.checkCollisionWithShark(this.mainCharacter);
 
             this.scene.render();
-
-
-
 
 
             this.fishTime += this.engine.getDeltaTime() * 0.001; // Convert to seconds
@@ -364,6 +520,38 @@ export default class SecondLevel {
                     -Math.sin(angle)
                 );
             });
+
+            // Détection de proximité avec les poissons
+            for (const fish of this.fishes) {
+                const fishPos = fish.getAbsolutePosition();
+                const playerPos = this.mainCharacter.collisionMesh.getAbsolutePosition();
+
+                const distance = Vector3.Distance(fishPos, playerPos);
+
+                if (distance < 3) {
+                    // Supprime le mesh du poisson
+                    fish.dispose();
+
+                    // Supprime le poisson du tableau
+                    const index = this.fishes.indexOf(fish);
+                    if (index !== -1) {
+                        this.fishes.splice(index, 1);
+                    }
+
+                    // Réinitialise l'air
+                    if (this.air < this.maxAir) {
+                        this.air = this.maxAir;
+                        if (this.airDisplay) {
+                            this.airDisplay.textContent = `Air: ${this.air}%`;
+                        }
+                    }
+
+                    console.log("Fish collected! Air replenished.");
+
+                    break;
+                }
+            }
+
 
         });
     }

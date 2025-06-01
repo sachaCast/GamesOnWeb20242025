@@ -5,6 +5,7 @@ import {
     Vector3,
     StandardMaterial,
     Color3,
+    Color4,
     HemisphericLight,
     ArcRotateCamera,
     AbstractMesh,
@@ -12,7 +13,10 @@ import {
     PhotoDome,
     SceneLoader,
     Tools,
-    Texture
+    Texture,
+    Scene as BabylonScene, // Ensure this is imported for fog mode constants
+    AnimationGroup,
+    TransformNode,
 } from "@babylonjs/core";
 
 import Character from "./character";
@@ -35,7 +39,12 @@ export default class SecondLevel {
     private boss: Boss | undefined;
     private levelFinished: boolean = false;
     private groundSize: number = 20;
-    public boundary = this.groundSize / 2 - 1; // Character movement boundaries
+    private fishes: TransformNode[] = [];
+    private fishAnimations: AnimationGroup[] = [];
+    private fishSwimRadius = 5;
+    private fishSwimSpeed = 0.5;
+    private fishTime = 0;
+    public boundary: number = this.groundSize / 2 - 1;
 
 
     constructor() {
@@ -50,7 +59,8 @@ export default class SecondLevel {
                 loadingDiv.classList.add("fade-out");
                 setTimeout(() => loadingDiv.remove(), 1000);
             }
-        });    }
+        });
+    }
 
     public async createLevel(): Promise<void> {
         this.donutsFound = 0;
@@ -62,15 +72,23 @@ export default class SecondLevel {
         this.finishDisplay = document.getElementById("finishDisplay")!;
 
         await Promise.all([
-            //this.loadBos
-            this.loadLevel()
-            //this.loadDonuts()
+            this.loadLevel(),
+            this.loadFishes(), 
         ]);
+        this.createUnderwaterEffect(); //  Underwater visuals
     }
 
     private createLighting(): void {
         const light = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
         light.intensity = 0.9;
+    }
+
+    private createUnderwaterEffect(): void {
+        this.scene.fogMode = BabylonScene.FOGMODE_EXP; // Use constant from Scene
+        this.scene.fogColor = new Color3(0.0, 0.4, 0.7); // Blue tint
+        this.scene.fogDensity = 0.01;
+
+        this.scene.clearColor = new Color4(0.0, 0.2, 0.3, 1.0); // Background color for underwater feel
     }
 
     public async resetLevel(): Promise<void> {
@@ -87,57 +105,50 @@ export default class SecondLevel {
         });
     }
 
-
     public async loadLevel(): Promise<void> {
         return new Promise((resolve) => {
-            SceneLoader.ImportMesh(null, "/", "level2_finished.glb", this.scene, (meshes) => {
+            SceneLoader.ImportMesh(null, "/", "2nd level.glb", this.scene, (meshes) => {
                 console.log("Level loaded!", meshes);
 
                 meshes.forEach(mesh => {
-                mesh.checkCollisions = true;
-                mesh.receiveShadows = true;
+                    mesh.checkCollisions = true;
+                    mesh.receiveShadows = true;
                 });
-                meshes[0].scaling = new Vector3(2, 2, -2); // x2 plus grand
-                meshes[0].position = new Vector3(-80, 0, -30);
-                //meshes[0].rotation = new Vector3(0, Tools.ToRadians(-90), 0);
+                meshes[0].scaling = new Vector3(2, 2, -2);
+                meshes[0].position = new Vector3(-80, -1, -30);
 
-                //Add invisible ground under the model !!!!!!!!! IF WE NEED IT !!!!!!!
-                //11111111111111111111111111111111111111
                 const invisibleGround1 = MeshBuilder.CreateGround("invisibleGround", {
                     width: 200,
                     height: 50
                 }, this.scene);
 
-                invisibleGround1.position = new Vector3(-51.2, 0, 0); // Just below the level
-                invisibleGround1.isVisible = false; // Make it invisible
-                invisibleGround1.checkCollisions = true; // Enable collision
+                invisibleGround1.position = new Vector3(-51.2, 0, 0);
+                invisibleGround1.isVisible = false;
+                invisibleGround1.checkCollisions = true;
                 const groundMaterial1 = new StandardMaterial("groundMat", this.scene);
                 const groundTexture1 = new Texture("/textures/Metal027_1K-JPG_Color.jpg", this.scene);
                 groundMaterial1.diffuseTexture = groundTexture1;
                 invisibleGround1.material = groundMaterial1;
 
-
-                ///222222222222222222222222222222222222
                 const invisibleGround2 = MeshBuilder.CreateGround("invisibleGround", {
                     width: 48,
                     height: 100
                 }, this.scene);
 
-                invisibleGround2.position = new Vector3(-82, -8.3, 0); // Just below the level
-                invisibleGround2.isVisible = false; // Make it invisible
-                invisibleGround2.checkCollisions = true; // Enable collision
+                invisibleGround2.position = new Vector3(-82, -8.3, 0);
+                invisibleGround2.isVisible = false;
+                invisibleGround2.checkCollisions = true;
                 const groundMaterial2 = new StandardMaterial("groundMat", this.scene);
                 const groundTexture2 = new Texture("/textures/Metal027_1K-JPG_Color.jpg", this.scene);
                 groundMaterial2.diffuseTexture = groundTexture2;
                 invisibleGround2.material = groundMaterial2;
 
-                const wallThickness = 0.5; // thin box wall
-                const wallHeight = 100;      // height of the wall
+                const wallThickness = 0.5;
+                const wallHeight = 100;
                 const groundWidth = 65;
                 const groundDepth = 8.8;
                 const groundCenter = new Vector3(-63.2, -10.51, 0);
 
-                // Back wall
                 const backWall = MeshBuilder.CreateBox("backWall", {
                     width: groundWidth,
                     height: wallHeight,
@@ -147,13 +158,12 @@ export default class SecondLevel {
                 backWall.position = new Vector3(
                     groundCenter.x,
                     groundCenter.y + wallHeight / 2,
-                    groundCenter.z - (groundDepth / 2) -5
+                    groundCenter.z - (groundDepth / 2) - 5
                 );
                 backWall.isVisible = false;
                 backWall.checkCollisions = true;
                 backWall.freezeWorldMatrix();
 
-                // Front wall
                 const frontWall = MeshBuilder.CreateBox("frontWall", {
                     width: groundWidth,
                     height: wallHeight,
@@ -168,126 +178,193 @@ export default class SecondLevel {
                 frontWall.isVisible = false;
                 frontWall.checkCollisions = true;
                 frontWall.freezeWorldMatrix();
+
                 resolve();
+            });
+        });
+        
+    }
+    
+    private async loadFishes(): Promise<void> {
+        const fishPositions: Vector3[] = [
+            new Vector3(-71.54, 25.14, 4.85),
+            new Vector3(-64.97, 9.86, -2.66),
+            new Vector3(-77.47, 8.00, -5.08),
+            new Vector3(-81.77, 4.65, 6.07),
+            new Vector3(-91.36, 17.46, -8.17),
+            new Vector3(-106.82, 21.68, 12.44),
+            new Vector3(-103.50, 7.57, 12.44),
+            new Vector3(-117.87, 11.03, 12.44),
+            new Vector3(-120.80, 18.59, -3.44),
+            new Vector3(-113.21, 11.30, -3.44)
+        ];
+
+        const fishPath = "/";
+        const fishFile = "fish_-_low_poly_-_rigged_-_animated.glb";
+
+        for (let i = 0; i < fishPositions.length; i++) {
+            const result = await SceneLoader.ImportMeshAsync("", fishPath, fishFile, this.scene);
+
+            const root = result.meshes[0] as TransformNode;
+            const fish = root;
+
+            fish.scaling = new Vector3(5, 5, 5); // test scale
+            fish.position = fishPositions[i];
+            fish.rotation = new Vector3(0, Math.random() * Math.PI * 2, 0); // Optional random Y rotation
+
+            this.fishes.push(fish);
+
+            result.animationGroups.forEach(group => {
+                group.start(true); // loop the swim animation
+                this.fishAnimations.push(group);
+            });
+
+
+            //show fish
+            result.meshes.forEach(mesh => {
+                mesh.isVisible = true;
+                mesh.alwaysSelectAsActiveMesh = true;
+                //mesh.showBoundingBox = true;
+                mesh.checkCollisions = true;
+            });
+
+
+        }
+
+        console.log(`${fishPositions.length} fishes loaded at fixed positions.`);
+    }
+
+
+
+    public starting(character: Character): void {
+        this.mainCharacter = character;
+        this.mainCharacter.setSwimmingMode(true);
+
+        //const bounceForce = 0.5;
+        //let isInSecondLevel = true; // only allow swimming here
+
+        const camera = new FollowCamera("FollowCam", new Vector3(0, 5, -10), this.scene);
+        camera.lockedTarget = this.mainCharacter.collisionMesh;
+        camera.radius = 10;
+        camera.heightOffset = 5;
+        camera.rotationOffset = 0;
+        camera.inputs.clear();
+
+        const keys: Record<string, boolean> = {};
+
+        new PhotoDome("sky", "/textures/Metal027_1K-JPG_Color.jpg", {
+            resolution: 32,
+            size: 1000
+        }, this.scene);
+
+       const keyMappings: Record<string, string> = {
+            // QWERTY movement
+            "KeyW": "forward",
+            "KeyA": "right",
+            "KeyS": "backward",
+            "KeyD": "left",
+
+            // AZERTY movement
+            "KeyZ": "forward",
+            "KeyQ": "right",
+
+            // Arrow keys
+            "ArrowUp": "forward",
+            "ArrowDown": "backward",
+            "ArrowLeft": "right",
+            "ArrowRight": "left",
+
+            //"ShiftLeft": "crawl",
+            "KeyC": "grab",
+            "Space": "up",
+            "ShiftLeft": "down"
+        };
+
+        let verticalInput = 0;
+
+        window.addEventListener("keydown", (event) => {
+            const action = keyMappings[event.code];
+            if (action) keys[action] = true;
+
+            if (event.code === "Space") verticalInput = 1;
+            if (event.code === "ShiftLeft") verticalInput = -1;
+        });
+
+        window.addEventListener("keyup", (event) => {
+            const action = keyMappings[event.code];
+            if (action) keys[action] = false;
+
+            if (event.code === "Space" || event.code === "ShiftLeft") verticalInput = 0;
+        });
+
+
+        this.scene.onPointerDown = (evt, pickInfo) => {
+            if (evt.button === 0) {
+                this.isAttacking = true;
+                console.log("Attaque avec clic gauche !");
+            }
+        };
+
+        this.scene.onPointerUp = (evt) => {
+            if (evt.button === 0) {
+                this.isAttacking = false;
+            }
+        };
+
+        
+        this.engine.runRenderLoop(() => {
+            if (this.healthDisplay != null) this.healthDisplay.textContent = `HP: ${this.mainCharacter.currentHP}/${this.mainCharacter.maxHP}`;
+            if (this.donutsDisplay != null) this.donutsDisplay.textContent = `donuts: ${this.donutsFound}/5`;
+            const pos = this.mainCharacter.collisionMesh.position;
+            if (this.positionDisplay != null) this.positionDisplay.textContent = `Position: (x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)})`;
+
+            if (!this.mainCharacter.isAlive || this.levelFinished) return;
+
+            let moveDirection = new Vector3(0, 0, 0);
+            if (keys["forward"]) moveDirection.z -= 1;
+            if (keys["backward"]) moveDirection.z += 1;
+            if (keys["left"]) moveDirection.x -= 1;
+            if (keys["right"]) moveDirection.x += 1;
+
+            this.mainCharacter.attack(this.isAttacking);
+            this.mainCharacter.updateHit();
+
+            moveDirection.normalize();
+            this.mainCharacter.move(moveDirection, this.boundary, verticalInput);
+            /*if (this.mainCharacter.isSwimming) {
+                this.mainCharacter.move(moveDirection, this.boundary, verticalInput);
+            } else {
+                // Apply gravity only when not swimming
+                this.mainCharacter.applyGravity();
+            }*/
+
+            this.mainCharacter.applyGravity();
+            this.mainCharacter.applyGravity();
+
+            this.scene.render();
+
+
+
+
+
+            this.fishTime += this.engine.getDeltaTime() * 0.001; // Convert to seconds
+
+            this.fishes.forEach((fish, i) => {
+                const angle = this.fishTime * this.fishSwimSpeed + i;
+                const radius = this.fishSwimRadius + (i % 3); // Vary radii
+                const yOscillation = Math.sin(angle * 2) * 0.5;
+
+                fish.position.x += Math.sin(angle) * 0.02;
+                fish.position.z += Math.cos(angle) * 0.02;
+                fish.position.y += yOscillation * 0.002;
+
+                // Face forward
+                fish.rotation.y = Math.atan2(
+                    Math.cos(angle),
+                    -Math.sin(angle)
+                );
             });
 
         });
-
-    }
-
-    public starting(character: Character): void {
-
-        this.mainCharacter = character;
-        const bounceForce = 0.5;
-                const camera = new FollowCamera("FollowCam", new Vector3(0, 5, -10), this.scene);
-                camera.lockedTarget = this.mainCharacter.collisionMesh; // The camera follows the character
-                camera.radius = 10;
-                camera.heightOffset = 5;
-                camera.rotationOffset = 0;
-                // Disable user camera controls
-                camera.inputs.clear();
-
-                const keys: Record<string, boolean> = {}; // Store pressed keys
-
-                new PhotoDome("sky", "/textures/Metal027_1K-JPG_Color.jpg", {
-                    resolution: 32,
-                    size: 1000
-                }, this.scene);
-
-                const keyMappings: Record<string, string> = {
-                    "KeyW": "forward",
-                    "KeyS": "backward",
-                    "KeyA": "right",
-                    "KeyD": "left",
-                    "ArrowUp": "forward",
-                    "ArrowDown": "backward",
-                    "ArrowLeft": "right",
-                    "ArrowRight": "left",
-                    "ShiftLeft": "crawl",
-                    "KeyC": "grab",
-                };
-
-                this.scene.onPointerDown = (evt, pickInfo) => {
-                    if (evt.button === 0) { // Clic gauche
-                        this.isAttacking = true;
-                        console.log("Attaque avec clic gauche !");
-
-                    }
-                };
-
-                this.scene.onPointerUp = (evt) => {
-                    if (evt.button === 0) {
-                        this.isAttacking = false;
-                    }
-                };
-
-                window.addEventListener("keydown", (event) => {
-                    const action = keyMappings[event.code];
-                    if (action) keys[action] = true;
-
-                    // Crawl mechanic
-                    if (event.code === "ShiftLeft") {
-                        this.mainCharacter.crawl(true);
-                    }
-
-                    if (event.code === "KeyC") {
-                        this.mainCharacter.isGrabbing = true;
-                    }
-
-                    if (event.code === "Space" && !this.mainCharacter.isJumping && this.mainCharacter.mesh.scaling.y === 1) {
-                        this.mainCharacter.velocityY = this.mainCharacter.jumpStrength;
-                        this.mainCharacter.isJumping = true;
-                    }
-
-                    if (event.code === "Space" && this.mainCharacter.isGrounded() && this.mainCharacter.canJump) {
-                        this.mainCharacter.jump();
-                    }
-                });
-
-                // Handle key release events
-                window.addEventListener("keyup", (event) => {
-                    const action = keyMappings[event.code];
-                    if (action) keys[action] = false;
-
-                    // Restore normal size when shift is released
-                    if (event.code === "ShiftLeft") {
-                        this.mainCharacter.crawl(false);
-                    }
-
-                    if (event.code === "KeyC") {
-                        this.mainCharacter.isGrabbing = false;
-                    }
-                });
-
-                this.engine.runRenderLoop(() => {
-
-                    //if (!mainCharacter.isAlive || !mainCharacter.isLoaded) return;
-                    if( this.healthDisplay!=null) this.healthDisplay.textContent = `HP: ${this.mainCharacter.currentHP}/${this.mainCharacter.maxHP}`;
-                    if( this.donutsDisplay!=null) this.donutsDisplay.textContent = `donuts: ${this.donutsFound}/5`;
-                    const pos = this.mainCharacter.collisionMesh.position;
-                    if(this.positionDisplay!=null) this.positionDisplay.textContent = `Position: (x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)})`;
-                    //if(this.finishDisplay!=null && this.boss!=null && this.boss.hp>0) this.finishDisplay.textContent = ``;
-
-                    if (!this.mainCharacter.isAlive || this.levelFinished) return;
-
-
-                    let moveDirection = new Vector3(0, 0, 0);
-                    // Determine movement direction
-                    if (keys["forward"]) moveDirection.z -= 1;
-                    if (keys["backward"]) moveDirection.z += 1;
-                    if (keys["left"]) moveDirection.x -= 1;
-                    if (keys["right"]) moveDirection.x += 1;
-                    this.mainCharacter.attack(this.isAttacking);
-                    // Mettre à jour le recul du personnage
-                    this.mainCharacter.updateHit();
-
-                    moveDirection.normalize();
-                    this.mainCharacter.move(moveDirection, this.boundary);
-                    // Gravity
-                    this.mainCharacter.applyGravity();
-                    this.mainCharacter.applyGravity();
-
-                    this.scene.render();
-                });
     }
 }

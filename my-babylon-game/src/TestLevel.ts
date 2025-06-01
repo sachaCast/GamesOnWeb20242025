@@ -267,9 +267,9 @@ export default class TestLevel {
 
     private loadSpiders(){
         const spidersPositions = [
-            new Vector3(-75, -7, 0.36),
-            new Vector3(-80, -7, 0.36),
-            new Vector3(-85, -7, 0.36),
+            new Vector3(-75, -8, 0.36),
+            new Vector3(-80, -8, 0.36),
+            new Vector3(-85, -8, 0.36),
         ];
         spidersPositions.forEach((pos, index) => {
             let spider = new Spider(this.scene, "/", "spider.glb", pos, new Vector3(5, 5, 5));
@@ -382,6 +382,9 @@ export default class TestLevel {
             "KeyS": "backward",
             "KeyA": "right",
             "KeyD": "left",
+            // AZERTY movement
+            "KeyZ": "forward",
+            "KeyQ": "left",
             "ArrowUp": "forward",
             "ArrowDown": "backward",
             "ArrowLeft": "right",
@@ -524,7 +527,7 @@ export default class TestLevel {
             this.checkCollisionWithDonuts(mainCharacter);
             if(mainCharacter.collisionMesh.position._x<-60){
                 this.spiders.forEach(spider => {
-                    spider.crawl(mainCharacter);
+                    spider.crawl(mainCharacter, this.spiders);
                     spider.update(); // Ajoutez cette ligne
                 });
             }

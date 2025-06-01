@@ -9,6 +9,14 @@
 ## Link
 Play the game at [https://sachacast.github.io/GamesOnWeb20242025/](https://sachacast.github.io/GamesOnWeb20242025/)
 
+## 🕸️🌊 The game's story
+
+**Listani & Nisali** is not just a game, but a reflection of the idea that fears can be overcome by facing them head-on. The team drew inspiration from real stories: each member of the team recalled their own fears and how they overcame them. This gave the game emotional depth, making it not just entertainment, but a story about courage and self-discovery.
+
+In **Listani & Nisali**, the player falls into a dream trap, where each level is a room in which fears from the past come to life. The first level immerses the player in a memory associated with a fear of spiders: as a child, the hero reached for a donut on a shelf, but suddenly a spider fell on his hand, causing him to develop a persistent fear that spiders could appear at any moment. In the game, this fear materializes when the player collects donuts and suddenly encounters a swarm of spiders. Fighting them with his fists and courage, the hero overcomes this fear. The level ends with a mysterious portal, a flickering entrance symbolizing a way out of fear into the unknown. Passing through it signifies the hero's readiness for the next challenge.
+
+The portal transports the hero to the second level — an underwater world where the fear of deep water and hidden objects comes to life. This fear stems from a childhood memory: while swimming with friends in a river, the hero's foot touched an unexpected underwater object, causing panic and a feeling of uncertainty. In the game, the player travels through this underwater realm, surrounded by old pipes and cute fish, learning to accept the secrets hidden beneath the surface. Realizing what lies in the depths and already knowing what the underwater world hides, the hero's fear disappears, giving way to strength and confidence in future trials.
+
 ## 🌌 Project Overview
 
 **Lisani & Nisali** is a 3D adventure game built with **TypeScript** and **Babylon.js**. The story follows a protagonist who enters a dream world to confront their fears. At the beginning of the game, players choose between two characters:

@@ -17,15 +17,15 @@ In **Listani & Nisali**, the player falls into a dream trap, where each level is
 
 The portal transports the hero to the second level — an underwater world where the fear of deep water and hidden objects comes to life. This fear stems from a childhood memory: while swimming with friends in a river, the hero's foot touched an unexpected underwater object, causing panic and a feeling of uncertainty. In the game, the player travels through this underwater realm, surrounded by old pipes and cute fish, learning to accept the secrets hidden beneath the surface. Realizing what lies in the depths and already knowing what the underwater world hides, the hero's fear disappears, giving way to strength and confidence in future trials.
 
+## 📽️ Gameplay Demo
+
+[![Watch the video](https://img.youtube.com/vi/L8MAer8B1j8/maxresdefault.jpg)](https://www.youtube.com/watch?v=L8MAer8B1j8)
+
 ## 🌌 Project Overview
 
 **Lisani & Nisali** is a 3D adventure game built with **TypeScript** and **Babylon.js**. The story follows a protagonist who enters a dream world to confront their fears. At the beginning of the game, players choose between two characters:
 - **Lisani** (female)
 - **Nisali** (male)
-
-## 📽️ Gameplay Demo
-
-[![Watch the video](https://img.youtube.com/vi/L8MAer8B1j8/maxresdefault.jpg)](https://www.youtube.com/watch?v=L8MAer8B1j8)
 
 ## 🚀 Development Approach
 

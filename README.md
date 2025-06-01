@@ -25,7 +25,7 @@ The portal transports the hero to the second level — an underwater world where
 
 ## 📽️ Gameplay Demo
 
-- **Direct Link**: [Watch Gameplay Video](video.mkv) (Download or play in a compatible player like VLC).
+[![Watch the video](https://img.youtube.com/vi/L8MAer8B1j8/maxresdefault.jpg)](https://www.youtube.com/watch?v=L8MAer8B1j8)
 
 ## 🚀 Development Approach
 

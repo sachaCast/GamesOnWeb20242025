@@ -86,8 +86,8 @@ The game takes place in a 3D environment across two levels, each designed to con
 
 ```bash
 # 1. Clone the repository
-git clone <your-repo-link>
-cd <your-project-folder>
+git clone https://github.com/sachaCast/GamesOnWeb20242025.git
+cd GamesOnWeb20242025/my-babylon-game
 
 # 2. Install dependencies
 npm install

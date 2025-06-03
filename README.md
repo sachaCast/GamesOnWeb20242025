@@ -86,12 +86,13 @@ The game takes place in a 3D environment across two levels, each designed to con
 
 ```bash
 # 1. Clone the repository
-git clone <your-repo-link>
-cd <your-project-folder>
+git clone https://github.com/sachaCast/GamesOnWeb20242025.git
+cd /my-babylon-game
 
 # 2. Install dependencies
 npm install
 npm install @babylonjs/core @babylonjs/loaders
+npm install vite
 
 # 3. Start the dev server
 npm run dev

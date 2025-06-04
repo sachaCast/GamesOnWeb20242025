@@ -5,17 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Babylon.js Game</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
 </head>
 <body>
 
   <!-- Game Canvas -->
   <canvas id="renderCanvas"></canvas>
 
-  <!-- Loading Screen -->
-  <div id="loadingScreen">Loading game...</div>
+  <!-- Main Menu -->
+  <div id="mainMenu">
+    <h1 id="menuTitle">Cursed Forest</h1>
+    <button class="menuButton" id="startButton">Start Game</button>
+    <button class="menuButton" id="creditsButton">Credits</button>
+   <div id="1234"><li>Move: W/A/S/D or Arrow keys</li>
+    <li>Jump / Swim Up: Spacebar</li>
+    <li>Crawl / Swim Down: Shift</li>
+    <li>Grab / Interact: C</li>
+  </ul></div>
+  </div>
+</div>
+  <!-- Character Select Screen -->
+  <div id="characterMenu" style="display: none;">
+    <h2>Select Your Character</h2>
+    <p>This is a placeholder screen for character selection.</p>
+    <button class="menuButton" id="charBack">Back to Menu</button>
+  </div>
 
-  <!-- HUD -->
-  <div id="hud">
+  <!-- Credits Modal -->
+  <div id="creditsModal" style="display: none;">
+<!-- Credits Modal -->
+<div id="creditsModal">
+  <div id="creditsContent">
+    <h2 style="font-size: 36px; margin-top: 0;">Credits</h2>
+    <p><strong>Mikita Sidarenka</strong><br><span style="font-size: 20px;">Lead 3D Artist & Animator</span></p>
+    <p><strong>Yelyzaveta Ploskonos</strong><br><span style="font-size: 20px;">Art Integration & Project Styling</span></p>
+    <p><strong>Sacha Castillejos</strong><br><span style="font-size: 20px;">Gameplay Mechanics & Game Logic</span></p>
+    <button id="closeCredits">Close</button>
+  </div>
+</div>
+
+
+</div>
+
+
+  <!-- HUD (hidden by default) -->
+  <div id="hud" style="display: none;">
     <div id="healthDisplay" style="font-size: 24px;">Health: 100</div>
     <div id="donutsDisplay" style="font-size: 24px;">Donuts: 0</div>
     <div id="positionDisplay">Position: (x: 0, y: 0, z: 0)</div>

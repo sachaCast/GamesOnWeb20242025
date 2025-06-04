@@ -55,6 +55,8 @@ export default class SecondLevel {
     private shark!: TransformNode;
     private sharkActive: boolean = false;
     private door: Mesh | null = null;
+    private crabs: AbstractMesh[] = [];
+
 
     constructor() {
         this.canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
@@ -94,7 +96,8 @@ export default class SecondLevel {
             this.loadLevel(),
             this.loadFishes(),
             this.loadShark(),
-            this.loadKeys()
+            this.loadKeys(),
+            this.loadCrabs(),
         ]);
         this.createUnderwaterEffect(); //  Underwater visuals
     }
@@ -260,6 +263,91 @@ export default class SecondLevel {
         console.log(`${fishPositions.length} fishes loaded at fixed positions.`);
     }
 
+    /*private loadCrabs() {
+        const crabPositions = [
+            new Vector3(-91.88, 23.60, 6.54),
+            new Vector3(-72.66, 25.14, 6.25),
+            new Vector3(-77.03, 9.85, 4.86),
+            new Vector3(-83.59, 0.61, 5.66),
+        ];
+
+        SceneLoader.ImportMeshAsync(null, "/", "animated_crab.glb", this.scene).then((result) => {
+            const root = result.meshes[0]; // Usually the root TransformNode
+            const crabMeshes = result.meshes.slice(1); // Actual mesh parts
+            const crabSkeletons = result.skeletons;
+
+            crabPositions.forEach((pos, index) => {
+                // Clone the crab mesh hierarchy
+                const crabInstance = root.clone(`crab_${index}`, null)!;
+                crabInstance.position = pos.clone();
+
+                // Re-assign skeleton and animations if present
+                crabInstance.getChildMeshes().forEach((mesh, idx) => {
+                    if (crabSkeletons[0]) {
+                        mesh.skeleton = crabSkeletons[0].clone(`crab_skel_${index}`);
+                    }
+                });
+            });
+
+            console.log("Crabs placed at specified positions!");
+        });
+    }*/
+   private loadCrabs() {
+        const crabPositions = [
+            new Vector3(-91.88, 23, 6.54),
+            new Vector3(-72.66, 25, 6.25),
+            new Vector3(-77.03, 8, 4.86),
+            new Vector3(-83.59, 0.5, 5.66),
+        ];
+
+        SceneLoader.ImportMeshAsync(null, "/", "animated_crab.glb", this.scene).then((result) => {
+            const root = result.meshes[0]; // Likely a TransformNode
+            const crabSkeleton = result.skeletons[0]; // Shared skeleton
+
+            crabPositions.forEach((pos, index) => {
+                const crab = root.clone(`crab_${index}`, null)!;
+                crab.position = pos.clone();
+
+                // Clone animation skeleton
+                crab.getChildMeshes().forEach((mesh) => {
+                    if (crabSkeleton) {
+                        mesh.skeleton = crabSkeleton.clone(`crab_skel_${index}`);
+                    }
+                });
+                crab.checkCollisions = true;
+
+                // Store crab & movement direction in metadata
+                (crab as any).moveDir = 1; // Start moving forward (+Z)
+                this.crabs.push(crab);
+            });
+
+            this.setupCrabMovement();
+        });
+    }
+
+    private setupCrabMovement() {
+        const zMin = -6.54;
+        const zMax = 6.54;
+        const speed = 0.05; // Tune this for faster/slower crabs
+
+        this.scene.onBeforeRenderObservable.add(() => {
+            this.crabs.forEach((crab) => {
+                const moveDir = (crab as any).moveDir;
+                crab.position.z += speed * moveDir;
+
+                // Flip direction if limits reached
+                if (crab.position.z > zMax) {
+                    (crab as any).moveDir = -1;
+                } else if (crab.position.z < zMin) {
+                    (crab as any).moveDir = 1;
+                }
+            });
+        });
+    }
+
+
+
+
     private async loadShark(): Promise<void> {
         const sharkPath = "/";
         const sharkFile = "shark.glb";
@@ -297,7 +385,6 @@ export default class SecondLevel {
 
         console.log("Donuts are being loaded...");
     }
-
 
     private setupCamera(): void {
         this.followCamera = new FollowCamera("FollowCam", new Vector3(0, 5, -10), this.scene);

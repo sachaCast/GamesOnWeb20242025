@@ -61,3 +61,142 @@ canvas {
   text-shadow: 3px 3px 5px black;
   z-index: 1000;
 }
+
+/* Ужасное меню */
+#mainMenu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  color: crimson;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  font-family: 'Creepster', cursive;
+  text-shadow: 2px 2px 5px black;
+}
+
+#menuTitle {
+  font-size: 64px;
+  margin-bottom: 40px;
+}
+
+.menuButton {
+  background-color: black;
+  color: crimson;
+  border: 2px solid crimson;
+  padding: 15px 30px;
+  font-size: 24px;
+  margin: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+  font-family: 'Creepster', cursive;
+}
+
+.menuButton:hover {
+  background-color: crimson;
+  color: black;
+}
+
+/* Credits Modal */
+
+#creditsContent {
+  background-color: #0a0a0a;
+  color: crimson;
+  padding: 40px;
+  border: 3px solid crimson;
+  text-align: center;
+  font-family: 'Creepster', cursive;
+  font-size: 24px;
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 0 25px crimson;
+  border-radius: 12px;
+  text-shadow: 1px 1px 4px black;
+}
+
+#hud {
+  display: none;
+}
+
+#creditsModal {
+  display: none;
+  position: fixed;
+  z-index: 200;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(5, 0, 5, 0.95);
+  backdrop-filter: blur(4px);
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+
+
+
+
+
+/* Custom Close Button */
+#closeCredits {
+  margin-top: 30px;
+  background-color: black;
+  color: crimson;
+  border: 2px solid crimson;
+  padding: 12px 25px;
+  font-size: 22px;
+  font-family: 'Creepster', cursive;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#closeCredits:hover {
+  background-color: crimson;
+  color: black;
+  box-shadow: 0 0 10px crimson;
+}
+#characterSelect {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, #000 60%, #110011 100%);
+  color: crimson;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 150;
+  font-family: 'Creepster', cursive;
+  text-shadow: 2px 2px 6px black;
+}
+
+#characterTitle {
+  font-size: 48px;
+  margin-bottom: 30px;
+}
+
+#characterModels {
+  display: flex;
+  gap: 60px;
+  justify-content: center;
+  align-items: center;
+}
+
+#boyContainer, #girlContainer {
+  width: 300px;
+  height: 400px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 2px solid crimson;
+  border-radius: 10px;
+  box-shadow: 0 0 20px crimson;
+}

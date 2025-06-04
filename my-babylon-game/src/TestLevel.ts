@@ -29,6 +29,10 @@ export default class TestLevel {
     private donutsFound: number;
     private boss: Boss | undefined;
     private levelFinished: boolean = false;
+    //public throne: Mesh | TransformNode | undefined;
+    public secondCube: import("@babylonjs/core").AbstractMesh | undefined;
+
+
 
     constructor() {
         //this.mainCharacter = mainCharacter;
@@ -141,7 +145,7 @@ export default class TestLevel {
     //private loadLevel(): void {
     public async loadLevel(): Promise<void> {
         return new Promise((resolve) => {
-            SceneLoader.ImportMesh(null, "/", "no_stairs_1lvl.glb", this.scene, (meshes) => {
+            SceneLoader.ImportMesh(null, "/", "nothrone.glb", this.scene, (meshes) => {
                 console.log("Level loaded!", meshes);
 
                 meshes.forEach(mesh => {
@@ -220,6 +224,7 @@ export default class TestLevel {
                 frontWall.freezeWorldMatrix();
             });
 
+
             SceneLoader.ImportMesh(null, "/", "bedroomm.glb", this.scene, (meshes) => {
                 console.log("Level loaded!", meshes);
 
@@ -232,6 +237,43 @@ export default class TestLevel {
                 resolve();
 
             });
+
+           SceneLoader.ImportMesh("", "/", "throneplacement.glb", this.scene, (meshes) => {
+            const throne = meshes[0] as Mesh;
+            throne.position = new Vector3(-50.5, -10.5, 0); 
+            throne.rotation = new Vector3(0, Tools.ToRadians(-90), 0);
+            throne.checkCollisions = true;
+            throne.isPickable = true;
+
+            // Force-enable collisions on children
+            throne.getChildMeshes().forEach(mesh => {
+                mesh.checkCollisions = true; 
+            });
+            
+            //throne.showBoundingBox = true;
+
+            // Create a smaller custom collision box (grab box)
+            const grabBox = MeshBuilder.CreateBox("throneGrabBox", {
+                width: 2.5,
+                height: 2,
+                depth: 2.5,
+            }, this.scene);
+
+            grabBox.position = new Vector3(-110, -5.83, 0); // relative to throne
+            grabBox.setParent(throne);
+            grabBox.isVisible = false; //  hide during gameplay
+            grabBox.checkCollisions = true;  
+
+            // Optional: make visible for debugging
+            //grabBox.isVisible = true;
+            //grabBox.material = new StandardMaterial("debugMat", this.scene);
+            //(grabBox.material as StandardMaterial).diffuseColor = Color3.Red();
+            //(grabBox.material as StandardMaterial).alpha = 0.5;
+
+            this.secondCube = throne;
+            (this as any).throneGrabBox = grabBox; // store separately if needed
+        });
+
         });
 
     }
@@ -444,6 +486,21 @@ export default class TestLevel {
                                 setTimeout(() => {
                                     this.levelFinished = true;
                                 }, 1000);*/
+
+                                if (this.finishDisplay != null) {
+                                    this.finishDisplay.textContent = "To go further, move the throne to the side!";
+                                    this.finishDisplay.style.color = "#FFD700"; // Optional: gold color
+                                    this.finishDisplay.style.fontSize = "1.5em"; 
+                                    this.finishDisplay.style.position = "absolute";
+                                    //this.finishDisplay.style.fontWeight = "bold";
+                                }
+
+                                // Optional: Auto-clear message after delay
+                                setTimeout(() => {
+                                    if (this.finishDisplay != null) {
+                                        this.finishDisplay.textContent = "";
+                                    }
+                                }, 4000);
                             }
                         }
                     }
@@ -538,7 +595,7 @@ export default class TestLevel {
             this.checkCollisionWithBoss(mainCharacter);
 
             const cubeDistance = Vector3.Distance(mainCharacter.collisionMesh.position, this.cube.position);
-            //console.log(cubeDistance)
+            //console.log( "Cube distance:", cubeDistance);
             if (cubeDistance < 2.8 && mainCharacter.isGrabbing) {
                 mainCharacter.speed = 0.025;
                 this.cube.moveWithCollisions(moveDirection.scale(mainCharacter.speed));
@@ -548,6 +605,19 @@ export default class TestLevel {
             }
             else if (cubeDistance > 1.5){
                 mainCharacter.speed = 0.1;
+            }
+
+           if (this.secondCube && (this as any).throneGrabBox) {
+                const grabBox = (this as any).throneGrabBox as Mesh;
+                const throneDistance = Vector3.Distance(mainCharacter.collisionMesh.position, grabBox.getAbsolutePosition());
+                //console.log("Throne distance:", throneDistance);
+                if (throneDistance < 3 && mainCharacter.isGrabbing) {
+                    mainCharacter.speed = 0.025;
+                    this.secondCube.position.addInPlace(moveDirection.scale(mainCharacter.speed));
+                    //this.secondCube.moveWithCollisions(moveDirection.scale(mainCharacter.speed));
+                    this.checkBoundaries(this.secondCube);
+                    console.log("grab the throne");
+                }
             }
 
             this.scene.render();

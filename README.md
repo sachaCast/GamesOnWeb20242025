@@ -32,9 +32,10 @@ The portal transports the hero to the second level — an underwater world where
 - Game architecture includes separate classes for:
   - **Character** (player controls and actions)
   - **Game Objects** (interactive elements like cubes and donuts)
-  - **Level** (environment, enemies, and boss)
+  - **Levels** (environment, enemies, and boss)
   - **Spider** (enemy AI and combat)
   - **Boss** (final enemy encounter)
+  - **Counter** (collect objects)
 
 ## 🕹 Gameplay Features
 

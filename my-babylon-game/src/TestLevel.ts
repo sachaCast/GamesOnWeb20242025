@@ -21,10 +21,12 @@ export default class TestLevel {
     public engine: Engine;
     public boundary = this.groundSize / 2 - 1; // Character movement boundaries
     public isAttacking = false;
-    private healthDisplay: HTMLElement | undefined;
+    //private healthDisplay: HTMLElement | undefined;
+    private hpFillBar: HTMLElement | null = null;
     private donutsDisplay: HTMLElement | undefined;
+    private donutFillBar: HTMLElement | null = null;
     //private initialCharacterPosition: Vector3 = new Vector3(0, 0.6, 0);
-    private positionDisplay: HTMLElement | undefined;
+    //private positionDisplay: HTMLElement | undefined;
     private finishDisplay: HTMLElement | undefined;
     private donutsFound: number;
     private boss: Boss | undefined;
@@ -59,9 +61,11 @@ export default class TestLevel {
         //this.scene.collisionsEnabled = true;
         this.createCube();
         this.createBorders();
-        this.healthDisplay = document.getElementById("healthDisplay")!;
-        this.positionDisplay = document.getElementById("positionDisplay")!;
+        //this.healthDisplay = document.getElementById("healthDisplay")!;
+        this.hpFillBar = document.getElementById("hp-bar-fill");
+        //this.positionDisplay = document.getElementById("positionDisplay")!;
         this.donutsDisplay = document.getElementById("donutsDisplay")!;
+        this.donutFillBar = document.getElementById("donut-bar-fill");
         this.finishDisplay = document.getElementById("finishDisplay")!;
         this.scene.collisionsEnabled = true;
         await Promise.all([
@@ -554,10 +558,22 @@ export default class TestLevel {
 
         this.engine.runRenderLoop(() => {
             //if (!mainCharacter.isAlive || !mainCharacter.isLoaded) return;
-            if( this.healthDisplay!=null) this.healthDisplay.textContent = `HP: ${mainCharacter.currentHP}/${mainCharacter.maxHP}`;
-            if( this.donutsDisplay!=null) this.donutsDisplay.textContent = `donuts: ${this.donutsFound}/5`;
+            //if( this.healthDisplay!=null) this.healthDisplay.textContent = `HP: ${mainCharacter.currentHP}/${mainCharacter.maxHP}`;
+            if (this.hpFillBar) {
+                const percent = mainCharacter.currentHP / mainCharacter.maxHP;
+                this.hpFillBar.style.width = `${Math.max(0, Math.min(percent * 100, 100))}%`;
+            }
+            //if( this.donutsDisplay!=null) this.donutsDisplay.textContent = `donuts: ${this.donutsFound}/5`;
+            if (this.donutsDisplay) {
+                this.donutsDisplay.textContent = `donuts: ${this.donutsFound}/${this.donuts.length + this.donutsFound}`;
+            }
+
+            if (this.donutFillBar) {
+                const percent = this.donutsFound / 5; // Max is 5 donuts
+                this.donutFillBar.style.width = `${Math.min(percent * 100, 100)}%`;
+            }
             const pos = mainCharacter.collisionMesh.position;
-            if(this.positionDisplay!=null) this.positionDisplay.textContent = `Position: (x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)})`;
+            //if(this.positionDisplay!=null) this.positionDisplay.textContent = `Position: (x: ${pos.x.toFixed(2)}, y: ${pos.y.toFixed(2)}, z: ${pos.z.toFixed(2)})`;
             if(this.finishDisplay!=null && this.boss!=null && this.boss.hp>0) this.finishDisplay.textContent = ``;
 
             if (!mainCharacter.isAlive || this.levelFinished) return;
